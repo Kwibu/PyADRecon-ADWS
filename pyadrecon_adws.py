@@ -4456,9 +4456,9 @@ class PyADRecon:
             if not local_computer:
                 local_computer = "Unknown Host"
 
-            results.append({"Category": "PyADRecon Version", "Value": VERSION})
+            results.append({"Category": "PyADRecon-ADWS Version", "Value": VERSION})
             results.append({"Category": "Date", "Value": self.start_time.strftime("%m.%d.%Y %H:%M")})
-            results.append({"Category": "GitHub Repository", "Value": "github.com/l4rm4nd/PyADRecon"})
+            results.append({"Category": "GitHub Repository", "Value": "github.com/l4rm4nd/PyADRecon-ADWS"})
             results.append({"Category": "Executed By", "Value": self.config.username if self.config.username else "Current User"})
             results.append({"Category": "Executed From", "Value": f"{local_computer} ({computer_type})"})
             results.append({"Category": "Execution Time", "Value": f"{duration_secs:.2f} seconds"})
