@@ -3088,14 +3088,18 @@ class PyADRecon:
             for entry in entries:
                 
                 applies_to = get_attr_list(entry, 'msDS-PSOAppliesTo')
+                
+                # Get boolean values and format consistently with LDAP tool
+                complexity_enabled = get_attr(entry, 'msDS-PasswordComplexityEnabled', '')
+                reversible_encryption = get_attr(entry, 'msDS-PasswordReversibleEncryptionEnabled', '')
 
                 results.append({
                     "Name": get_attr(entry, 'name', ''),
                     "Precedence": str(get_attr(entry, 'msDS-PasswordSettingsPrecedence', '')),
                     "Min Password Length": str(get_attr(entry, 'msDS-MinimumPasswordLength', '')),
                     "Password History": str(get_attr(entry, 'msDS-PasswordHistoryLength', '')),
-                    "Complexity Enabled": str(get_attr(entry, 'msDS-PasswordComplexityEnabled', '')),
-                    "Reversible Encryption": str(get_attr(entry, 'msDS-PasswordReversibleEncryptionEnabled', '')),
+                    "Complexity Enabled": str(complexity_enabled).capitalize() if str(complexity_enabled).upper() in ['TRUE', 'FALSE'] else str(complexity_enabled),
+                    "Reversible Encryption": str(reversible_encryption).capitalize() if str(reversible_encryption).upper() in ['TRUE', 'FALSE'] else str(reversible_encryption),
                     "Lockout Threshold": str(get_attr(entry, 'msDS-LockoutThreshold', '')),
                     "Applies To": ", ".join([str(a) for a in applies_to]) if applies_to else "",
                 })
@@ -3364,6 +3368,15 @@ class PyADRecon:
                         
                         if dns_records:
                             for record_bytes in dns_records:
+                                # Convert string to bytes if needed (ADWS returns base64-encoded strings)
+                                if isinstance(record_bytes, str):
+                                    try:
+                                        import base64
+                                        record_bytes = base64.b64decode(record_bytes)
+                                    except:
+                                        logger.debug(f"Could not decode DNS record for {name}")
+                                        continue
+                                
                                 parsed = parse_dns_record(record_bytes)
                                 if parsed:
                                     results.append({
@@ -3441,8 +3454,47 @@ class PyADRecon:
         return results
 
     def collect_bitlocker(self) -> List[Dict]:
-        logger.info("[*] Collecting BitLocker recovery info...")
-        return []  # Stub
+        """Collect BitLocker recovery keys."""
+        logger.info("[-] Collecting BitLocker Recovery Keys...")
+        results = []
+
+        try:
+            entries = self.search(
+                search_base=self.base_dn,
+                search_filter='(objectCategory=msFVE-RecoveryInformation)',
+                attributes=['name', 'msFVE-RecoveryPassword', 'msFVE-RecoveryGuid', 
+                           'whenCreated', 'distinguishedName']
+            )
+
+            for entry in entries:
+                recovery_pwd = get_attr(entry, 'msFVE-RecoveryPassword', '')
+                recovery_guid = get_attr(entry, 'msFVE-RecoveryGuid', '')
+                when_created = format_datetime(self._parse_timestamp(get_attr(entry, 'whenCreated')))
+                dn = get_attr(entry, 'distinguishedName', '')
+                
+                # Extract computer name from DN
+                computer_name = ""
+                if dn:
+                    parts = dn.split(',')
+                    for part in parts:
+                        if part.startswith('CN=') and not part.startswith('CN={'):
+                            computer_name = part[3:]
+                            break
+
+                results.append({
+                    "Computer": computer_name,
+                    "RecoveryPassword": recovery_pwd,
+                    "RecoveryGuid": recovery_guid,
+                    "whenCreated": when_created,
+                    "DistinguishedName": dn
+                })
+
+        except Exception as e:
+            logger.warning(f"Error collecting BitLocker: {e}")
+
+        self.results['Bitlocker'] = results
+        logger.info(f"    Found {len(results)} BitLocker recovery keys")
+        return results
 
     def collect_dmsa(self) -> List[Dict]:
         """Collect Delegated Managed Service Accounts (dMSA) - Windows Server 2025+."""
@@ -4487,8 +4539,11 @@ class PyADRecon:
                 ('Forest', self.config.collect_forest, self.collect_forest_info),
                 ('Trusts', self.config.collect_trusts, self.collect_trusts),
                 ('Sites', self.config.collect_sites, self.collect_sites),
+                ('Subnets', self.config.collect_subnets, self.collect_subnets),
+                ('SchemaHistory', self.config.collect_schema, self.collect_schema_history),
                 ('DomainControllers', self.config.collect_dcs, self.collect_domain_controllers),
                 ('PasswordPolicy', self.config.collect_password_policy, self.collect_password_policy),
+                ('FineGrainedPasswordPolicy', self.config.collect_fgpp, self.collect_fine_grained_password_policies),
                 ('Users', self.config.collect_users, self.collect_users),
                 ('UserSPNs', self.config.collect_user_spns, self.collect_user_spns),
                 ('Groups', self.config.collect_groups, self.collect_groups),
@@ -4498,7 +4553,10 @@ class PyADRecon:
                 ('OUs', self.config.collect_ous, self.collect_ous),
                 ('GPOs', self.config.collect_gpos, self.collect_gpos),
                 ('gPLinks', self.config.collect_gplinks, self.collect_gplinks),
+                ('DNSZones', self.config.collect_dns_zones, self.collect_dns_zones),
+                ('DNSRecords', self.config.collect_dns_records, self.collect_dns_records),
                 ('LAPS', self.config.collect_laps, self.collect_laps),
+                ('Bitlocker', self.config.collect_bitlocker, self.collect_bitlocker),
                 ('Printers', self.config.collect_printers, self.collect_printers),
                 ('gMSA', self.config.collect_gmsa, self.collect_gmsa),
                 ('dMSA', self.config.collect_dmsa, self.collect_dmsa),
