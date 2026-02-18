@@ -1,0 +1,2 @@
+Domain,Site,Name,IPv4Address,Operating System,Hostname,Infra,Naming,Schema,RID,PDC,SMB Port Open,SMB1(NT LM 0.12),SMB2(0x0202),SMB2(0x0210),SMB3(0x0300),SMB3(0x0302),SMB3(0x0311),SMB Signing
+vulnad.local,Default-First-Site-Name,dc1,192.168.178.39,Windows Server 2019 Standard,dc1.vulnad.local,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,FALSE,TRUE,TRUE,TRUE,TRUE,FALSE,TRUE

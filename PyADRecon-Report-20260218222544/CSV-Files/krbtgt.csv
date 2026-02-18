@@ -1,0 +1,2 @@
+Account Name,Distinguished Name,Password Last Set,Password Age (days),Risk Level,Risk Factors,Kerberos RC4,Kerberos AES-128,Kerberos AES-256,SID,Created,Last Modified,Description
+krbtgt,"CN=krbtgt,CN=Users,DC=vulnad,DC=local",1/28/2024 10:48:32 PM,751,CRITICAL,krbtgt password not changed in 751 days (Golden Ticket risk),Default,Default,Default,S-1-5-21-4178490863-1286169181-2994033663-502,1/28/2024 10:48:32 PM,1/28/2024 11:03:41 PM,Key Distribution Center Service Account

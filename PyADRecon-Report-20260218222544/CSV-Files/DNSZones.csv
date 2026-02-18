@@ -1,0 +1,5 @@
+Name,whenCreated,whenChanged,DistinguishedName
+RootDNSServers,1/28/2024 10:49:11 PM,1/28/2024 10:49:11 PM,"DC=RootDNSServers,CN=MicrosoftDNS,CN=System,DC=vulnad,DC=local"
+vulnad.local,1/28/2024 10:57:21 PM,1/28/2024 10:57:21 PM,"DC=vulnad.local,CN=MicrosoftDNS,DC=DomainDnsZones,DC=vulnad,DC=local"
+RootDNSServers,1/28/2024 10:57:21 PM,2/11/2024 12:21:28 AM,"DC=RootDNSServers,CN=MicrosoftDNS,DC=DomainDnsZones,DC=vulnad,DC=local"
+_msdcs.vulnad.local,1/28/2024 10:57:20 PM,1/28/2024 10:57:21 PM,"DC=_msdcs.vulnad.local,CN=MicrosoftDNS,DC=ForestDnsZones,DC=vulnad,DC=local"

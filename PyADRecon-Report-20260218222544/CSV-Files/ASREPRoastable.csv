@@ -1,0 +1,2 @@
+SAM Account Name,Name,Enabled,Risk Level,Risk Factors,AdminCount,Has SPN,Password Age (days),Last Logon,Logon Age (days),Member Of,SID,Description,Info,Created,Distinguished Name
+lrvt,Laurent Vetter,True,Medium,AS-REP Roasting vulnerable (no pre-authentication required),,No,694,2/9/2026 8:46:07 AM,9,sales; Senior management; Remote Desktop Users,S-1-5-21-4178490863-1286169181-2994033663-1169,New user; password is P@ssw0rd,,2/13/2024 4:33:18 AM,"CN=Laurent Vetter,CN=Users,DC=vulnad,DC=local"
