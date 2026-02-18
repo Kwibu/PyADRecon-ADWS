@@ -718,6 +718,7 @@ class ADReconConfig:
     only_enabled: bool = False
     output_dir: str = "."
     workstation: Optional[str] = None  # NTLM workstation name
+    spn: Optional[str] = None  # Kerberos SPN override
     
     # Collection flags
     collect_forest: bool = True
@@ -782,7 +783,8 @@ class PyADRecon:
                 server=server,
                 user=self.config.username,
                 password=self.config.password,
-                authentication=self.config.auth_method
+                authentication=self.config.auth_method,
+                spn=self.config.spn
             )
 
             # Bind (authenticate)
@@ -6215,11 +6217,9 @@ def main():
 
     # Authentication options
     parser.add_argument('--auth', choices=['ntlm', 'kerberos'], default='ntlm',
-                        help='Authentication method (default: ntlm) - Note: Kerberos not yet implemented for ADWS')
-    parser.add_argument('--tgt-file', default='',
-                        help='Path to Kerberos TGT ccache file (not yet implemented for ADWS)')
-    parser.add_argument('--tgt-base64', default='',
-                        help='Base64-encoded Kerberos TGT ccache (not yet implemented for ADWS)')
+                        help='Authentication method: ntlm or kerberos (default: ntlm)')
+    parser.add_argument('--spn', type=str, default=None,
+                        help='Service Principal Name override (default: HTTP/dc.fqdn)')
     parser.add_argument('--workstation', default='',
                         help='NTLM authentication workstation name (default: random)')
 
@@ -6273,17 +6273,32 @@ def main():
     if not args.domain or not args.username or not args.domain_controller:
         parser.error("the following arguments are required: -d/--domain, -u/--username, -dc/--domain-controller")
 
-    # Check for Kerberos authentication (not yet implemented)
-    if args.auth == 'kerberos' or args.tgt_file or args.tgt_base64:
-        logger.error("[!] Kerberos authentication is not yet implemented for ADWS protocol")
-        logger.error("[!] ADWS currently only supports NTLM authentication")
-        logger.error("[!] Please use --auth ntlm (default) or use the LDAP version (pyadrecon.py) for Kerberos support")
-        sys.exit(1)
-
-    # Get password if not provided
-    if not args.password:
-        import getpass
-        args.password = getpass.getpass('Password: ')
+    # Kerberos authentication warnings
+    if args.auth == 'kerberos':
+        logger.info("[*] Using Kerberos authentication")
+        if not args.password:
+            logger.info("[*] No password provided - will use Kerberos credential cache")
+        # Don't prompt for password if using Kerberos with ccache
+        if not args.password:
+            try:
+                import subprocess
+                result = subprocess.run(['klist'], capture_output=True, text=True, timeout=2)
+                if result.returncode == 0:
+                    logger.info("[*] Found Kerberos tickets in cache")
+                    args.password = None  # Use ccache
+                else:
+                    logger.warning("[!] No Kerberos tickets found - you may need to run 'kinit user@DOMAIN.COM' first")
+                    import getpass
+                    args.password = getpass.getpass('Password: ')
+            except (subprocess.TimeoutExpired, FileNotFoundError):
+                logger.warning("[!] Could not check Kerberos ticket cache")
+                import getpass
+                args.password = getpass.getpass('Password: ')
+    else:
+        # Get password if not provided for NTLM
+        if not args.password:
+            import getpass
+            args.password = getpass.getpass('Password: ')
 
     # Parse collection modules
     collect_modules = args.collect.lower().split(',')
@@ -6294,13 +6309,14 @@ def main():
         domain=args.domain,
         username=args.username,
         password=args.password,
-        auth_method='NTLM',  # Always NTLM for ADWS (Kerberos not yet implemented)
+        auth_method=args.auth.upper(),
         port=args.port,
         only_enabled=args.only_enabled,
         page_size=args.page_size,
         dormant_days=args.dormant_days,
         password_age_days=args.password_age,
         workstation=args.workstation if args.workstation else None,
+        spn=args.spn if hasattr(args, 'spn') else None,
     )
 
     # Configure collection based on modules

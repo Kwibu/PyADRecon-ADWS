@@ -14,7 +14,7 @@ import logging
 
 # Use local standalone ADWS implementation
 try:
-    from .adws import ADWSConnect, NTLMAuth, ADWSError, NAMESPACES, KNOWN_BINARY_ADWS_ATTRIBUTES
+    from .adws import ADWSConnect, NTLMAuth, KerberosAuth, ADWSError, NAMESPACES, KNOWN_BINARY_ADWS_ATTRIBUTES
     from impacket.ldap.ldaptypes import LDAP_SID
 except ImportError as e:
     raise ImportError(f"Failed to import ADWS modules: {e}")
@@ -159,11 +159,13 @@ class ADWSConnection:
     Mimics ldap3 Connection class but uses ADWS
     """
     def __init__(self, server: ADWSServer, user: Optional[str] = None, 
-                 password: Optional[str] = None, authentication: Any = None):
+                 password: Optional[str] = None, authentication: Any = None,
+                 spn: Optional[str] = None):
         self.server = server
         self.user = user
         self.password = password
         self.authentication = authentication
+        self.spn = spn
         self.entries = []
         self._adws_client = None
         self._root_dn = None
@@ -181,15 +183,24 @@ class ADWSConnection:
             elif '@' in username:
                 username, domain = username.rsplit('@', 1)
             
-            # Determine if password is a hash (LM:NTLM format)
-            hashes = None
-            password = self.password
-            if password and ':' in password and len(password.split(':')) == 2:
-                hashes = password
-                password = None
-            
-            # Create NTLM auth
-            auth = NTLMAuth(password=password, hashes=hashes)
+            # Determine authentication method
+            if self.authentication == 'KERBEROS':
+                # Use Kerberos authentication
+                auth = KerberosAuth(
+                    password=self.password,
+                    use_ccache=(self.password is None),
+                    spn=self.spn
+                )
+                logger.info("Using Kerberos authentication")
+            else:
+                # Use NTLM authentication (default)
+                hashes = None
+                password = self.password
+                if password and ':' in password and len(password.split(':')) == 2:
+                    hashes = password
+                    password = None
+                auth = NTLMAuth(password=password, hashes=hashes)
+                logger.debug("Using NTLM authentication")
             
             # Create ADWS connection
             self._adws_client = ADWSConnect.pull_client(

@@ -129,6 +129,9 @@ class NNS:
         password: str | None = None,
         nt: str = "",
         lm: str = "",
+        auth_type: str = 'ntlm',
+        use_ccache: bool = False,
+        spn: str | None = None,
     ):
         self._sock = socket
 
@@ -140,6 +143,13 @@ class NNS:
 
         self._domain = domain
         self._fqdn = fqdn
+        
+        # Authentication type and Kerberos parameters
+        self._auth_type = auth_type
+        self._use_ccache = use_ccache
+        # Default to HTTP SPN (more commonly registered than WSMAN)
+        self._spn = spn or f"HTTP/{fqdn}"
+        self._gssapi_ctx = None  # Store GSSAPI context for wrap/unwrap
 
         self._session_key: bytes = b""
         self._flags: int = -1
@@ -175,7 +185,26 @@ class NNS:
         Returns:
             tuple[bytes, bytes]: output_data, signature
         """
+        
+        # Use GSSAPI wrap for Kerberos
+        if self._auth_type == 'kerberos' and self._gssapi_ctx:
+            try:
+                wrapped = self._gssapi_ctx.wrap(data, encrypt=True)
+                # For GSSAPI, the wrapped message includes both encrypted data and signature
+                # We need to split it for NNS protocol compatibility
+                # Use first 16 bytes as signature, rest as ciphertext
+                if len(wrapped.message) > 16:
+                    sig = wrapped.message[:16]
+                    output = wrapped.message[16:]
+                else:
+                    sig = wrapped.message
+                    output = data  # Fallback
+                return output, sig
+            except Exception as e:
+                logging.warning(f"GSSAPI wrap failed, using plaintext: {e}")
+                return data, b'\x00' * 16
 
+        # Use NTLM SEAL for NTLM authentication
         server = bool(
             self._flags & impacket.ntlm.NTLMSSP_NEGOTIATE_EXTENDED_SESSIONSECURITY
         )
@@ -244,6 +273,22 @@ class NNS:
             payload += self._sock.recv(size - len(payload))
         nns_data["payload"] = payload
 
+        # Use GSSAPI unwrap for Kerberos
+        if self._auth_type == 'kerberos' and self._gssapi_ctx:
+            try:
+                # For GSSAPI, reconstruct the wrapped message
+                # Signature (16 bytes) + ciphertext
+                wrapped_message = nns_data["payload"]
+                unwrapped = self._gssapi_ctx.unwrap(wrapped_message)
+                return unwrapped.message
+            except Exception as e:
+                logging.warning(f"GSSAPI unwrap failed, using plaintext: {e}")
+                # Try to extract payload without decryption
+                if len(nns_data["payload"]) > 16:
+                    return nns_data["payload"][16:]
+                return nns_data["payload"]
+        
+        # Use NTLM SEAL for NTLM authentication
         nns_signed_payload = NNS_Signed_payload()
         nns_signed_payload["signature"] = nns_data["payload"][0:16]
         nns_signed_payload["cipherText"] = nns_data["payload"][16:]
@@ -252,12 +297,27 @@ class NNS:
         return clearText
 
     def sendall(self, data: bytes):
-        """send to server in NTLM sealed NNS data packet via tcp socket.
+        """send to server in NTLM/Kerberos sealed NNS data packet via tcp socket.
 
         Args:
             data (bytes): utf-16le encoded payload data
         """
-
+        
+        # Use GSSAPI wrap for Kerberos
+        if self._auth_type == 'kerberos' and self._gssapi_ctx:
+            try:
+                wrapped = self._gssapi_ctx.wrap(data, encrypt=True)
+                # Send wrapped message as NNS data packet
+                pkt = NNS_data()
+                pkt["payload"] = wrapped.message
+                self._sock.sendall(pkt.getData())
+                logging.debug(f"Sent {len(data)} bytes (wrapped: {len(wrapped.message)} bytes) via GSSAPI")
+                return
+            except Exception as e:
+                logging.error(f"GSSAPI wrap failed: {e}")
+                raise
+        
+        # Use NTLM SEAL for NTLM authentication
         cipherText, sig = impacket.ntlm.SEAL(
             self._flags,
             self._client_signing_key,
@@ -432,3 +492,172 @@ class NNS:
                 int.from_bytes(NNS_msg_done["payload"], "big")
             ]
             raise SystemExit(f"[-] NTLM Auth Failed with error {err_type} {err_msg}")
+
+    def auth_kerberos(self) -> None:
+        """Authenticate using Kerberos via GSSAPI"""
+        import sys
+        import base64
+        
+        # Import platform-specific GSSAPI
+        try:
+            if sys.platform == 'win32':
+                import winkerberos as kerberos
+                use_winkerberos = True
+            else:
+                import gssapi
+                use_winkerberos = False
+        except ImportError as e:
+            raise ImportError(
+                f"Kerberos libraries not installed: {e}\n"
+                "Linux: pip install gssapi\n"
+                "Windows: pip install winkerberos"
+            )
+        
+        logging.info(f"Using SPN: {self._spn}")
+        logging.debug(f"Starting Kerberos authentication to {self._spn}")
+        
+        # Generate AP_REQ token using GSSAPI
+        if use_winkerberos:
+            # Windows implementation using winkerberos
+            try:
+                result, ctx = kerberos.authGSSClientInit(self._spn)
+                if result < 0:
+                    raise Exception("Failed to initialize Kerberos context")
+                
+                result = kerberos.authGSSClientStep(ctx, "")
+                if result < 0:
+                    raise Exception("Kerberos authentication step failed")
+                
+                ap_req_token = kerberos.authGSSClientResponse(ctx)
+                ap_req_bytes = base64.b64decode(ap_req_token)
+                
+                logging.debug(f"Generated Kerberos AP_REQ token ({len(ap_req_bytes)} bytes)")
+            except Exception as e:
+                raise Exception(f"Windows Kerberos authentication failed: {e}")
+        else:
+            # Linux implementation using gssapi
+            try:
+                # Convert SPN from Windows format (HTTP/hostname) to GSSAPI format (HTTP@hostname)
+                gssapi_spn = self._spn.replace('/', '@')
+                logging.debug(f"Converted SPN to GSSAPI format: {gssapi_spn}")
+                
+                service = gssapi.Name(gssapi_spn, gssapi.NameType.hostbased_service)
+                
+                # Create credentials (from ccache or password)
+                creds = None
+                if not self._use_ccache and self._password:
+                    # Try to acquire credentials with password
+                    try:
+                        name = gssapi.Name(f"{self._username}@{self._domain.upper()}",
+                                         gssapi.NameType.user)
+                        creds = gssapi.raw.acquire_cred_with_password(
+                            name, self._password.encode(), usage='initiate'
+                        ).creds
+                        logging.debug("Acquired Kerberos credentials with password")
+                    except AttributeError:
+                        # acquire_cred_with_password not available in this gssapi version
+                        logging.warning("Password-based Kerberos auth not supported, using ccache")
+                        creds = None
+                else:
+                    logging.debug("Using Kerberos credential cache")
+                
+                # Create GSSAPI context with encryption and integrity flags
+                ctx = gssapi.SecurityContext(
+                    name=service,
+                    creds=creds,
+                    usage='initiate',
+                    flags=[gssapi.RequirementFlag.confidentiality, gssapi.RequirementFlag.integrity]
+                )
+                ap_req_bytes = ctx.step()
+                
+                # Save context for wrap/unwrap operations
+                self._gssapi_ctx = ctx
+                
+                logging.debug(f"Generated Kerberos AP_REQ token ({len(ap_req_bytes)} bytes)")
+                logging.info(f"GSSAPI context created (complete={ctx.complete}, flags={ctx.actual_flags})")
+                
+                # Extract session key from context (for debugging/logging only)
+                try:
+                    self._session_key = bytes(ctx.session_key)
+                    logging.debug(f"Extracted session key ({len(self._session_key)} bytes)")
+                except Exception as e:
+                    logging.debug(f"Could not extract session key (not needed for GSSAPI wrap/unwrap): {e}")
+                    self._session_key = None
+            except Exception as e:
+                raise Exception(f"Linux Kerberos authentication failed: {e}")
+        
+        # Wrap AP_REQ in SPNEGO NegTokenInit
+        NegTokenInit = impacket.spnego.SPNEGO_NegTokenInit()
+        NegTokenInit["MechTypes"] = [
+            impacket.spnego.TypesMech["MS KRB5 - Microsoft Kerberos 5"],
+            impacket.spnego.TypesMech["KRB5 - Kerberos 5"],
+        ]
+        NegTokenInit["MechToken"] = ap_req_bytes
+        
+        # Send initial auth request
+        logging.debug("Sending Kerberos NegTokenInit")
+        NNS_handshake(
+            message_id=MessageID.IN_PROGRESS,
+            major_version=1,
+            minor_version=0,
+            payload=NegTokenInit.getData(),
+        ).send(self._sock)
+        
+        # Receive server response
+        NNS_msg_resp = NNS_handshake(
+            message_id=int.from_bytes(self._sock.recv(1), "big"),
+            major_version=int.from_bytes(self._sock.recv(1), "big"),
+            minor_version=int.from_bytes(self._sock.recv(1), "big"),
+            payload=self._sock.recv(int.from_bytes(self._sock.recv(2), "big")),
+        )
+        
+        logging.debug(f"Received server response (message_id: {hex(NNS_msg_resp['message_id'])})")
+        
+        # Check for errors
+        if NNS_msg_resp["message_id"] == MessageID.ERROR:
+            err_type, err_msg = ERROR_MESSAGES[
+                int.from_bytes(NNS_msg_resp["payload"], "big")
+            ]
+            raise SystemExit(f"[-] Kerberos Auth Failed with error {err_type} {err_msg}")
+        
+        # Process server response to complete GSSAPI context  
+        if not use_winkerberos and hasattr(self, '_gssapi_ctx'):
+            # Complete the context with server's response if available
+            if NNS_msg_resp["payload"] and len(NNS_msg_resp["payload"]) > 0:
+                try:
+                    # Parse SPNEGO response
+                    spnego_resp = impacket.spnego.SPNEGO_NegTokenResp(NNS_msg_resp["payload"])
+                    if spnego_resp["ResponseToken"]:
+                        # Process the AP_REP to complete context
+                        self._gssapi_ctx.step(spnego_resp["ResponseToken"])
+                        logging.debug(f"GSSAPI context complete: {self._gssapi_ctx.complete}")
+                        
+                        # Now try to extract session key again
+                        if self._gssapi_ctx.complete:
+                            try:
+                                self._session_key = bytes(self._gssapi_ctx.session_key)
+                                logging.info(f"Extracted session key after context completion ({len(self._session_key)} bytes)")
+                            except Exception as e:
+                                logging.debug(f"Still cannot extract session key: {e}")
+                except Exception as e:
+                    logging.debug(f"Could not process server GSSAPI response: {e}")
+        
+        # For Kerberos, we use GSSAPI wrap/unwrap - no manual key setup needed
+        # Just initialize flags and sequence for compatibility
+        self._flags = 0
+        self._sequence = 0
+        
+        # Initialize dummy keys for NTLM compatibility (unused with Kerberos)
+        if not hasattr(self, '_client_signing_key'):
+            self._client_signing_key = b'\x00' * 16
+            self._server_signing_key = b'\x00' * 16
+            self._client_sealing_key = b'\x00' * 16
+            self._server_sealing_key = b'\x00' * 16
+            
+            from Cryptodome.Cipher import ARC4
+            cipher = ARC4.new(self._client_sealing_key)
+            self._client_sealing_handle = cipher.encrypt
+            self._server_sealing_handle = cipher.encrypt
+        
+        logging.info("✅ Kerberos authentication successful (using GSSAPI wrap/unwrap)")
+

@@ -38,9 +38,11 @@ pyadrecon_adws --version
 ## Usage
 
 ````py
-usage: pyadrecon_adws.py [-h] [--version] [--generate-excel-from CSV_DIR] [-d DOMAIN] [-u USERNAME] [-p PASSWORD] [-dc DOMAIN_CONTROLLER] [--port PORT]
-                         [--auth {ntlm,kerberos}] [--tgt-file TGT_FILE] [--tgt-base64 TGT_BASE64] [--workstation WORKSTATION] [-c COLLECT] [--only-enabled]
-                         [--page-size PAGE_SIZE] [--dormant-days DORMANT_DAYS] [--password-age PASSWORD_AGE] [-o OUTPUT] [--no-excel] [-v]
+usage: pyadrecon_adws.py [-h] [--version] [--generate-excel-from CSV_DIR] [-d DOMAIN] [-u USERNAME] [-p PASSWORD]
+                         [-dc DOMAIN_CONTROLLER] [--port PORT] [--auth {ntlm,kerberos}] [--spn SPN]
+                         [--workstation WORKSTATION] [-c COLLECT] [--only-enabled] [--page-size PAGE_SIZE]
+                         [--dormant-days DORMANT_DAYS] [--password-age PASSWORD_AGE] [-o OUTPUT] [--no-excel]
+                         [-v]
 
 PyADRecon-ADWS # Active Directory Reconnaissance using ADWS
 
@@ -58,10 +60,8 @@ options:
                         Domain controller hostname or IP
   --port PORT           ADWS port (default: 9389)
   --auth {ntlm,kerberos}
-                        Authentication method (default: ntlm) - Note: Kerberos not yet implemented for ADWS
-  --tgt-file TGT_FILE   Path to Kerberos TGT ccache file (not yet implemented for ADWS)
-  --tgt-base64 TGT_BASE64
-                        Base64-encoded Kerberos TGT ccache (not yet implemented for ADWS)
+                        Authentication method: ntlm or kerberos (default: ntlm)
+  --spn SPN             Service Principal Name override (default: HTTP/dc.fqdn)
   --workstation WORKSTATION
                         NTLM authentication workstation name (default: random)
   -c, --collect COLLECT

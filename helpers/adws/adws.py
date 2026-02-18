@@ -153,8 +153,21 @@ class NTLMAuth(ADWSAuthType):
         self.nt = hashes if hashes else None
         self.password = password
 
+class KerberosAuth(ADWSAuthType):
+    def __init__(self, password: str | None = None, use_ccache: bool = True, spn: str | None = None):
+        """Kerberos authentication configuration
+        
+        Args:
+            password: User password (optional if using ccache)
+            use_ccache: Use existing Kerberos credential cache (default: True)
+            spn: Service Principal Name override (default: WSMAN/fqdn)
+        """
+        self.password = password
+        self.use_ccache = use_ccache
+        self.spn = spn
+
 class ADWSConnect:
-    def __init__(self, fqdn: str, domain: str, username: str, auth: NTLMAuth, resource: str ):
+    def __init__(self, fqdn: str, domain: str, username: str, auth: NTLMAuth | KerberosAuth, resource: str ):
         self._fqdn = fqdn
         self._domain = domain
         self._username = username
@@ -165,7 +178,12 @@ class ADWSConnect:
     def _create_NNS_from_auth(self, sock: socket.socket) -> NNS:
         if isinstance(self._auth, NTLMAuth):
             return NNS(socket=sock, fqdn=self._fqdn, domain=self._domain, username=self._username,
-                       password=self._auth.password, nt=self._auth.nt if self._auth.nt else "")
+                       password=self._auth.password, nt=self._auth.nt if self._auth.nt else "",
+                       auth_type='ntlm')
+        elif isinstance(self._auth, KerberosAuth):
+            return NNS(socket=sock, fqdn=self._fqdn, domain=self._domain, username=self._username,
+                       password=self._auth.password, auth_type='kerberos',
+                       use_ccache=self._auth.use_ccache, spn=self._auth.spn)
         raise NotImplementedError("Authentication type not supported")
 
     def _connect(self, remoteName: str, resource: str) -> NMFConnection:
@@ -398,10 +416,10 @@ class ADWSConnect:
         return aggregated_items_root
 
     @classmethod
-    def pull_client(cls, ip: str, domain: str, username: str, auth: NTLMAuth) -> Self:
+    def pull_client(cls, ip: str, domain: str, username: str, auth: NTLMAuth | KerberosAuth) -> Self:
         return cls(ip, domain, username, auth, "Enumeration")
 
     @classmethod
-    def put_client(cls, ip: str, domain: str, username: str, auth: NTLMAuth) -> Self:
+    def put_client(cls, ip: str, domain: str, username: str, auth: NTLMAuth | KerberosAuth) -> Self:
         return cls(ip, domain, username, auth, "Resource")
 
