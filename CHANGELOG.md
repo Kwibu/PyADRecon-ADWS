@@ -1,3 +1,10 @@
+## [0.2.3](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.2.2...v0.2.3) (2026-02-18)
+
+
+### Bug Fixes
+
+* register missing collection methods and fix parsing ([2a02d60](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/2a02d605c020475be59126e9ef768cf2b070338a))
+
 ## [0.2.2](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.2.1...v0.2.2) (2026-02-18)
 
 
