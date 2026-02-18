@@ -116,8 +116,8 @@ Though, you can freely select your own collection of modules to run:
 - `domain` ✅
 - `trusts` ✅
 - `sites` ✅
-- `subnets` ✅
-- `schema` or `schemahistory` ✅
+<!-- `subnets` ✅ -->
+<!-- `schema` or `schemahistory` ✅ -->
 
 **Domain Controllers**
 - `dcs` or `domaincontrollers` ✅
@@ -146,7 +146,7 @@ Though, you can freely select your own collection of modules to run:
 - `passwordpolicy` ✅
 - `fgpp` or `finegrainedpasswordpolicy` 🛑
 - `laps` 🛑
-- `bitlocker` 🛑
+<!--- `bitlocker` 🛑-->
 
 **Managed Service Accounts**
 - `gmsa` or `groupmanagedserviceaccounts` ✅💥
@@ -157,9 +157,9 @@ Though, you can freely select your own collection of modules to run:
 - `adcs` or `certificates` ✅💥
   - Detects ESC1, ESC2, ESC3, ESC4 and ESC9
 
-**DNS**
-- `dnszones` ✅
-- `dnsrecords` ✅
+<!--**DNS**-->
+<!--- `dnszones` ✅ -->
+<!--- `dnsrecords` ✅ -->
 
 ## Acknowledgements
 
