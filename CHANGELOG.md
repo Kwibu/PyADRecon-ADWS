@@ -1,3 +1,10 @@
+## [0.3.0](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.2.3...v0.3.0) (2026-02-18)
+
+
+### Features
+
+* support kerberos authentication via gssapi ([c997fb4](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/c997fb46990c2ffd26e82d491c5d4932acaeb332))
+
 ## [0.2.3](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.2.2...v0.2.3) (2026-02-18)
 
 
