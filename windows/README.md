@@ -2,6 +2,9 @@
 
 A guide for running **PyADRecon-ADWS** on Windows systems using either the pre-built executable or Python.
 
+>[!CAUTION]
+>PyADRecon-ADWS.py as well as the standalone executable may be flagged by AV/EDR software.
+
 ---
 
 ## Table of Contents
@@ -66,6 +69,9 @@ See [Quick Start](#quick-start) for usage examples.
 
 For development, testing, or custom builds.
 
+> [!CAUTION]
+> Antivirus/EDR solutions may flag **impacket** and related tools. Only run in controlled environments with appropriate approvals.
+
 #### Step 1: Install Python
 
 ```powershell
@@ -105,6 +111,9 @@ Or from `pyproject.toml`:
 ```powershell
 python -m pip install .
 ```
+
+> [!CAUTION]
+> Antivirus/EDR solutions may flag **impacket** and related tools. Only run in controlled environments with appropriate approvals.
 
 #### Step 5: Run PyADRecon-ADWS
 
