@@ -1,2 +1,0 @@
-CA Name,Display Name,DNS Hostname,Distinguished Name,Created,Modified,Certificate Templates,Template Count
-vulnad-DC1-CA,vulnad-DC1-CA,dc1.vulnad.local,"CN=vulnad-DC1-CA,CN=Enrollment Services,CN=Public Key Services,CN=Services,CN=Configuration,DC=vulnad,DC=local",2/13/2024 9:20:09 PM,2/14/2024 10:23:35 PM,"VulnTemplate, DirectoryEmailReplication, DomainControllerAuthentication, KerberosAuthentication, EFSRecovery, EFS, DomainController, WebServer, Machine, User, SubCA, Administrator",12

@@ -1,4 +1,0 @@
-UserName,Name,Enabled,Service,Host,Password Last Set,Description,Info,Primary GroupID,Memberof
-darline.karine,Darline Karine,True,HTTP,webserver,3/27/2024 11:54:55 PM,Temporary domain admin,,513,Domain Admins
-krbtgt,krbtgt,False,kadmin,changepw,1/28/2024 10:48:32 PM,Key Distribution Center Service Account,,513,Denied RODC Password Replication Group
-dbadm,dbadm,True,MSSQLSvc,dc.vulnad.local:1433,9/24/2024 6:32:51 AM,,,513,

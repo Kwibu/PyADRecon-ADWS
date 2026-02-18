@@ -1,7 +1,0 @@
-Hostname,Enabled,Stored,Readable,Password,Expiration,Readers
-dc1.vulnad.local,True,False,False,,,Only default admins
-win11-dev.vulnad.local,True,True,True,Tx9(We9cDU;-]),2026-02-28 08:38:40.201111,"lrvt (User) - General read permission on computer, lrvt (User) - Explicit LAPS read permission, Administrator (User) - Explicit LAPS read permission"
-FakeMachine03.vulnad.local,True,False,False,,,lrvt (User) - General read permission on computer
-mssql_svc,True,False,False,,,Only default admins
-http_svc,True,False,False,,,Only default admins
-exchange_svc,True,False,False,,,Only default admins
