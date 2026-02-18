@@ -167,7 +167,7 @@ Many thanks to the following folks:
 - [S3cur3Th1sSh1t](https://github.com/S3cur3Th1sSh1t) for a first Claude draft of an alike PyADRecon LDAP port 
 - [Sense-of-Security](https://github.com/sense-of-security) for the original ADRecon script in PowerShell
 - [dirkjanm](https://github.com/dirkjanm) for the original ldapdomaindump script
-- [mverschu](https://github.com/mverschu) for his port of ldapdomaindump using ADWS. This repo heavily makes use of the ldap->adws wrapper scripts
+- [mverschu](https://github.com/mverschu) for his port of ldapdomaindump using ADWS (adwsdomaindump). PyADRecon-ADWS heavily makes use of the ldap-to-adws wrapper.
 - [Forta](https://github.com/fortra) for the awesome impacket suite
 - [Anthropic](https://github.com/anthropics) for Claude LLMs
 
