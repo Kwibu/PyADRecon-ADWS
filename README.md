@@ -180,8 +180,6 @@ The following third-party libraries are used:
 | Library     | License        |
 |-------------|----------------|
 | openpyxl    | MIT            |
-| gssapi      | MIT            |
-| impacket    | Apache 2.0     |
-| winkerberos | Apache 2.0     |
+| impacket    | Apache 2.0     ||
 
 Please refer to the respective licenses of these libraries when using or redistributing this software.
