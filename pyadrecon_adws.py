@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 PyADRecon-ADWS # Python Active Directory Reconnaissance Tool using ADWS
-A Python port of ADRecon with NTLM authentication querying ADWS.
+A Python3 implementation of PyADRecon using ADWS instead of LDAP for Pentesters, Red and Blue Teams
 
 This version uses ADWS (port 9389) instead of LDAP (port 389/636) for AD enumeration.
 ADWS is often less monitored (AV/EDR) than traditional LDAP in enterprise environments.
@@ -76,12 +76,12 @@ except ImportError:
 # Constants
 VERSION = "v0.2.0"  # Automatically updated by CI/CD pipeline during release
 BANNER = f"""
-╔═════════════════════════════════════════════════════════════
-║  PyADRecon {VERSION} - Python AD Reconnaissance Tool (ADWS)
+╔═══════════════════════════════════════════════════════════════════
+║  PyADRecon-ADWS {VERSION} - Python AD Reconnaissance Tool (ADWS)
 ║  A Python implementation inspired by ADRecon
 ║  -------------------------------------------------------
-║  Author: LRVT - https://github.com/l4rm4nd/PyADRecon              
-╚═════════════════════════════════════════════════════════════
+║  Author: LRVT - https://github.com/l4rm4nd/PyADRecon-ADWS              
+╚═══════════════════════════════════════════════════════════════════
 """
 
 # AD Constants
