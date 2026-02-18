@@ -180,6 +180,7 @@ The following third-party libraries are used:
 | Library     | License        |
 |-------------|----------------|
 | openpyxl    | MIT            |
-| impacket    | Apache 2.0     ||
+| impacket    | Apache 2.0     |
+| adwsdomaindump ADWS Wrapper | MIT         |
 
 Please refer to the respective licenses of these libraries when using or redistributing this software.
