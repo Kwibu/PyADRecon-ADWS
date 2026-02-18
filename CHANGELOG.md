@@ -1,3 +1,10 @@
+## [0.2.2](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.2.1...v0.2.2) (2026-02-18)
+
+
+### Bug Fixes
+
+* naming scheme ([c8b7e8d](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/c8b7e8d4af98f9673dc696769c6466426ace0a63))
+
 ## [0.2.1](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.2.0...v0.2.1) (2026-02-18)
 
 
