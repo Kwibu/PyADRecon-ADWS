@@ -1,3 +1,10 @@
+## [0.3.1](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.0...v0.3.1) (2026-02-19)
+
+
+### Bug Fixes
+
+* dependencies for pypi builds ([92c7071](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/92c707175098a823c5a6f73533543cdb851e50f8))
+
 ## [0.3.0](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.2.3...v0.3.0) (2026-02-18)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * banner and naming scheme ([f3d8ece](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/f3d8ece8beb47e8e2dca838b4f37e8c4be406726))
-
-## [0.2.0](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/4e6605fcb156eda11500f4c874149db10c4f7d95...v0.2.0) (2026-02-18)
-
-
-### Features
-
-* clean commit ([4e6605f](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/4e6605fcb156eda11500f4c874149db10c4f7d95))
 
