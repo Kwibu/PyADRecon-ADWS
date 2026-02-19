@@ -167,12 +167,13 @@ class KerberosAuth(ADWSAuthType):
         self.spn = spn
 
 class ADWSConnect:
-    def __init__(self, fqdn: str, domain: str, username: str, auth: NTLMAuth | KerberosAuth, resource: str ):
+    def __init__(self, fqdn: str, domain: str, username: str, auth: NTLMAuth | KerberosAuth, resource: str, page_size: int = 256):
         self._fqdn = fqdn
         self._domain = domain
         self._username = username
         self._auth = auth
         self._resource: str = resource
+        self._page_size: int = page_size
         self._nmf: NMFConnection = self._connect(self._fqdn, self._resource)
 
     def _create_NNS_from_auth(self, sock: socket.socket) -> NNS:
@@ -306,7 +307,7 @@ class ADWSConnect:
         }
 
     def _pull_results(self, remoteName: str, nmf: NMFConnection, enum_ctx: str) -> tuple[ElementTree.Element | None, bool]:
-        pull_vars = {"uuid": str(uuid4()), "fqdn": remoteName, "enum_ctx": enum_ctx}
+        pull_vars = {"uuid": str(uuid4()), "fqdn": remoteName, "enum_ctx": enum_ctx, "max_elements": self._page_size}
         pull_request_soap = LDAP_PULL_FSTRING.format(**pull_vars)
 
         nmf.send(pull_request_soap)
@@ -416,8 +417,8 @@ class ADWSConnect:
         return aggregated_items_root
 
     @classmethod
-    def pull_client(cls, ip: str, domain: str, username: str, auth: NTLMAuth | KerberosAuth) -> Self:
-        return cls(ip, domain, username, auth, "Enumeration")
+    def pull_client(cls, ip: str, domain: str, username: str, auth: NTLMAuth | KerberosAuth, page_size: int = 256) -> Self:
+        return cls(ip, domain, username, auth, "Enumeration", page_size=page_size)
 
     @classmethod
     def put_client(cls, ip: str, domain: str, username: str, auth: NTLMAuth | KerberosAuth) -> Self:

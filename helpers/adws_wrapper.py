@@ -160,12 +160,13 @@ class ADWSConnection:
     """
     def __init__(self, server: ADWSServer, user: Optional[str] = None, 
                  password: Optional[str] = None, authentication: Any = None,
-                 spn: Optional[str] = None):
+                 spn: Optional[str] = None, page_size: int = 256):
         self.server = server
         self.user = user
         self.password = password
         self.authentication = authentication
         self.spn = spn
+        self.page_size = page_size
         self.entries = []
         self._adws_client = None
         self._root_dn = None
@@ -207,7 +208,8 @@ class ADWSConnection:
                 ip=self.server.host,
                 domain=domain,
                 username=username,
-                auth=auth
+                auth=auth,
+                page_size=self.page_size
             )
             
             # Get root DN from RootDSE

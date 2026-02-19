@@ -158,11 +158,7 @@ GROUP_TYPE = {
     -2147483640: "Universal Security",
 }
 
-# Logging setup
-logging.basicConfig(
-    level=logging.INFO,
-    format='[%(levelname)s] %(message)s'
-)
+# Logging setup - level will be configured in main() based on -v flag
 logger = logging.getLogger('PyADRecon')
 
 
@@ -779,7 +775,8 @@ class PyADRecon:
                 user=self.config.username,
                 password=self.config.password,
                 authentication=self.config.auth_method,
-                spn=self.config.spn
+                spn=self.config.spn,
+                page_size=self.config.page_size
             )
 
             # Bind (authenticate)
@@ -6723,10 +6720,10 @@ Examples:
 
     # Configure logging level
     if args.verbose:
-        logging.basicConfig(level=logging.DEBUG, format='%(levelname)s - %(message)s')
+        logging.basicConfig(level=logging.DEBUG, format='[%(levelname)s] %(message)s', force=True)
         logger.setLevel(logging.DEBUG)
     else:
-        logging.basicConfig(level=logging.INFO, format='%(message)s')
+        logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s', force=True)
         logger.setLevel(logging.INFO)
 
     # Validate required arguments for normal mode
