@@ -1,3 +1,10 @@
+## [0.3.4](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.3...v0.3.4) (2026-02-19)
+
+
+### Bug Fixes
+
+* adcs ca parsing ([bde2e18](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/bde2e18b938e7be809ef4183294e0a025d2e1e26))
+
 ## [0.3.3](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.2...v0.3.3) (2026-02-19)
 
 
@@ -25,11 +32,4 @@
 ### Features
 
 * support kerberos authentication via gssapi ([c997fb4](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/c997fb46990c2ffd26e82d491c5d4932acaeb332))
-
-## [0.2.3](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.2.2...v0.2.3) (2026-02-18)
-
-
-### Bug Fixes
-
-* register missing collection methods and fix parsing ([2a02d60](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/2a02d605c020475be59126e9ef768cf2b070338a))
 
