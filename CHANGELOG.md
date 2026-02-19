@@ -1,3 +1,10 @@
+## [0.3.2](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.1...v0.3.2) (2026-02-19)
+
+
+### Bug Fixes
+
+* add example commands as epilog ([a49e9c7](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/a49e9c77ca10c9c13630ceab4d4b543df94d414d))
+
 ## [0.3.1](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.0...v0.3.1) (2026-02-19)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * naming scheme ([c8b7e8d](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/c8b7e8d4af98f9673dc696769c6466426ace0a63))
-
-## [0.2.1](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.2.0...v0.2.1) (2026-02-18)
-
-
-### Bug Fixes
-
-* banner and naming scheme ([f3d8ece](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/f3d8ece8beb47e8e2dca838b4f37e8c4be406726))
 
