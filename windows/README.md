@@ -35,6 +35,7 @@ The following ports must be accessible on the Domain Controller:
 |---------|------|----------|--------------|
 | ADWS | 9389 | TCP | Unencrypted LDAP (as fall-back) |
 | DNS | 53 | TCP/UDP | Name resolution / Kerberos SPNs |
+| Kerberos | 88 | TCP/UDP | (optional) Kerberos authentication |
 
 ### Additional Requirements
 - Working DNS resolution for DC hostname/FQDN
@@ -46,12 +47,51 @@ The following ports must be accessible on the Domain Controller:
 
 ### Using the pre-built executable
 
+#### NTLM Authentication
 ```powershell
 .\pyadrecon_adws.exe -dc 10.10.10.10 -d vulnad.local -u john -p "P@ssw0rd"
 ```
 
 > [!NOTE]
 > NTLM authentication works with DC IP addresses or hostnames.
+
+#### Kerberos Authentication
+```powershell
+.\pyadrecon_adws.exe -dc dc1.vulnad.local -d vulnad.local -u john --auth kerberos
+```
+
+> [!WARNING]
+> Kerberos authentication requires:
+> - DC hostname or FQDN (not IP address)
+> - Valid Kerberos ticket in the current logon session
+
+**Check for existing tickets:**
+
+```powershell
+klist
+```
+
+Look for `krbtgt/<REALM>` (e.g., `krbtgt/VULNAD.LOCAL`) to confirm you have a TGT.
+
+**Workflow for non-domain-joined computers:**
+
+If your Windows machine is **not** domain-joined, follow these steps:
+
+1. Create a logon session with domain credentials:
+```powershell
+runas.exe /netonly /noprofile /user:VULNAD\john "powershell.exe -ep bypass"
+```
+
+2. In the new PowerShell window, request Kerberos tickets:
+```powershell
+dir \\dc1.vulnad.local\NETLOGON
+klist
+```
+
+3. Run PyADRecon from the same window:
+```powershell
+.\pyadrecon_adws.exe -dc dc1.vulnad.local -d vulnad.local -u john --auth kerberos
+```
 
 ---
 
@@ -122,6 +162,10 @@ python -m pip install .
 python .\pyadrecon_adws.py -dc 10.10.10.10 -d vulnad.local -u john -p "P@ssw0rd"
 ```
 
+**Kerberos:**
+```powershell
+python .\pyadrecon_adws.py -dc dc1.vulnad.local -d vulnad.local -u john --auth kerberos
+```
 ---
 
 ### Building Your Own Executable
@@ -166,6 +210,29 @@ Contents:
 ---
 
 ## Troubleshooting
+
+### Kerberos fails when using an IP address
+
+**Problem:** Kerberos requires an SPN based on the DC hostname (e.g., `ldap/dc1.vulnad.local`).
+
+**Solution:** Use the DC hostname or FQDN instead of an IP address:
+```powershell
+.\pyadrecon.exe -dc dc1.vulnad.local -d vulnad.local -u john --auth kerberos
+```
+
+---
+
+### No tickets in `klist`
+
+**Problem:** No Kerberos tickets are cached.
+
+**Solution:** Trigger ticket acquisition by accessing a domain resource:
+```powershell
+dir \\dc1.vulnad.local\NETLOGON
+klist
+```
+
+---
 
 ### DNS resolution fails
 
