@@ -6198,7 +6198,24 @@ def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
         description='PyADRecon-ADWS # Active Directory Reconnaissance using ADWS',
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Basic usage with NTLM authentication
+  %(prog)s -dc 192.168.1.1 -u admin -p password123 -d DOMAIN.LOCAL
+
+  # With Kerberos authentication (only works on Linux with gssapi atm)
+  %(prog)s -dc dc01.domain.local -u admin -p password123 -d DOMAIN.LOCAL --auth kerberos
+
+  # Only collect specific modules
+  %(prog)s -dc 192.168.1.1 -u admin -p pass -d DOMAIN.LOCAL --collect users,groups,computers
+
+  # Output to specific directory
+  %(prog)s -dc 192.168.1.1 -u admin -p pass -d DOMAIN.LOCAL -o /tmp/adrecon_output
+
+  # Generate Excel report from existing CSV files (standalone mode)
+  %(prog)s --generate-excel-from /path/to/CSV-Files -o report.xlsx
+        """
     )
 
     # Version
