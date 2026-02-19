@@ -1,3 +1,10 @@
+## [0.3.7](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.6...v0.3.7) (2026-02-19)
+
+
+### Bug Fixes
+
+* forest support for child domain environments ([1deacd3](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/1deacd355dc4ce58e336a3b72ba758209e24297d))
+
 ## [0.3.6](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.5...v0.3.6) (2026-02-19)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * cell coloring; remove requirement for dns lookups and just lookup dumped dns records ([46d3d2a](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/46d3d2afc2b3980df396d5bccc1f5114b9033a61))
-
-## [0.3.2](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.1...v0.3.2) (2026-02-19)
-
-
-### Bug Fixes
-
-* add example commands as epilog ([a49e9c7](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/a49e9c77ca10c9c13630ceab4d4b543df94d414d))
 
