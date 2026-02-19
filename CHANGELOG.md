@@ -1,3 +1,10 @@
+## [0.3.8](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.7...v0.3.8) (2026-02-19)
+
+
+### Bug Fixes
+
+* support forest-child enumerations with proper sid resolving ([15aff39](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/15aff39c015a5d017e8c6c9cb7a3dd4763af6d0b))
+
 ## [0.3.7](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.6...v0.3.7) (2026-02-19)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * adcs ca parsing ([bde2e18](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/bde2e18b938e7be809ef4183294e0a025d2e1e26))
-
-## [0.3.3](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.2...v0.3.3) (2026-02-19)
-
-
-### Bug Fixes
-
-* cell coloring; remove requirement for dns lookups and just lookup dumped dns records ([46d3d2a](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/46d3d2afc2b3980df396d5bccc1f5114b9033a61))
 
