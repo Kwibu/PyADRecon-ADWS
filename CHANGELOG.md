@@ -1,3 +1,10 @@
+## [0.3.5](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.4...v0.3.5) (2026-02-19)
+
+
+### Bug Fixes
+
+* make --page-size and -v working ([e4bb00d](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/e4bb00d348f82b3685c11c90ab5bfaedf0452e3b))
+
 ## [0.3.4](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.3...v0.3.4) (2026-02-19)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * dependencies for pypi builds ([92c7071](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/92c707175098a823c5a6f73533543cdb851e50f8))
-
-## [0.3.0](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.2.3...v0.3.0) (2026-02-18)
-
-
-### Features
-
-* support kerberos authentication via gssapi ([c997fb4](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/c997fb46990c2ffd26e82d491c5d4932acaeb332))
 
