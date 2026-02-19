@@ -1,3 +1,10 @@
+## [0.3.6](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.5...v0.3.6) (2026-02-19)
+
+
+### Bug Fixes
+
+* adjust ace parsing for adcs and fix esc4 detection ([56b91d1](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/56b91d19b2534553b8d1cf672d6a037db780b9b6))
+
 ## [0.3.5](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.4...v0.3.5) (2026-02-19)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * add example commands as epilog ([a49e9c7](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/a49e9c77ca10c9c13630ceab4d4b543df94d414d))
-
-## [0.3.1](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.0...v0.3.1) (2026-02-19)
-
-
-### Bug Fixes
-
-* dependencies for pypi builds ([92c7071](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/92c707175098a823c5a6f73533543cdb851e50f8))
 
