@@ -221,9 +221,9 @@ def format_datetime(dt) -> str:
 
 def _extract_adws_value(attr):
     """Extract primitive value from ADWS Attribute object."""
-    if hasattr(attr, 'value'):
-        # It's an ADWS Attribute object
-        return attr.value
+    if hasattr(attr, 'values'):
+        # It's an ADWS Attribute object - use .values to get all values (returns list)
+        return attr.values
     return attr
 
 
