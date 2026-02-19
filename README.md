@@ -33,7 +33,7 @@ pyadrecon_adws --version
 ````
 
 > [!TIP]
-> For Windows, a standalone executable is provided. Look [here](https://github.com/l4rm4nd/PyADRecon/tree/main/windows).
+> For Windows, a standalone executable is provided. Look [here](https://github.com/l4rm4nd/PyADRecon/tree/main/windows). Only NTLM authentication works on Windows atm. Kerberos still broken but works on Linux.
 
 ## Usage
 
