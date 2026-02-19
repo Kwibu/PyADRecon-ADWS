@@ -5797,16 +5797,20 @@ class PyADRecon:
         
         stripe_fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
         
-        # RGB values of security colors to preserve (with 00 prefix that openpyxl adds)
-        security_colors = {
-            "00FFB3BA",  # Red
+        # RGB values of colors to preserve (with 00 prefix that openpyxl adds)
+        preserve_colors = {
+            "00FFB3BA",  # Red (security)
             "FFB3BA",    # Red (without prefix)
-            "00FFD9B3",  # Orange
+            "00FFD9B3",  # Orange (security)
             "FFD9B3",    # Orange (without prefix)
-            "00FFFFB3",  # Yellow
+            "00FFFFB3",  # Yellow (security)
             "FFFFB3",    # Yellow (without prefix)
             "00E0E0E0",  # Gray (disabled accounts)
             "E0E0E0",    # Gray (without prefix)
+            "000066CC",  # Blue (headers)
+            "0066CC",    # Blue (without prefix)
+            "00B3FFB3",  # Green (positive indicators)
+            "B3FFB3",    # Green (without prefix)
         }
         
         logger.info("    Applying striped row formatting...")
@@ -5826,9 +5830,9 @@ class PyADRecon:
                     for col_idx in range(1, ws.max_column + 1):
                         cell = ws.cell(row=row_idx, column=col_idx)
                         # Only apply striping if cell has no fill or has default fill
-                        # Skip cells with security colors
+                        # Skip cells with colored fills (headers, security highlights, etc.)
                         cell_rgb = cell.fill.start_color.rgb if cell.fill and hasattr(cell.fill.start_color, 'rgb') else None
-                        if cell_rgb is None or cell_rgb == '00000000' or cell_rgb not in security_colors:
+                        if cell_rgb is None or cell_rgb == '00000000' or cell_rgb not in preserve_colors:
                             cell.fill = stripe_fill
 
     def export_xlsx(self, output_dir: str, domain_name: str = ""):
