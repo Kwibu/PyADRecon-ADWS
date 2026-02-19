@@ -55,7 +55,7 @@ The following ports must be accessible on the Domain Controller:
 > [!NOTE]
 > NTLM authentication works with DC IP addresses or hostnames.
 
-#### Kerberos Authentication
+<!--#### Kerberos Authentication
 ```powershell
 .\pyadrecon_adws.exe -dc dc1.vulnad.local -d vulnad.local -u john --auth kerberos
 ```
@@ -92,7 +92,7 @@ klist
 ```powershell
 .\pyadrecon_adws.exe -dc dc1.vulnad.local -d vulnad.local -u john --auth kerberos
 ```
-
+-->
 ---
 
 ## Installation Methods
@@ -162,10 +162,12 @@ python -m pip install .
 python .\pyadrecon_adws.py -dc 10.10.10.10 -d vulnad.local -u john -p "P@ssw0rd"
 ```
 
+<!--
 **Kerberos:**
 ```powershell
 python .\pyadrecon_adws.py -dc dc1.vulnad.local -d vulnad.local -u john --auth kerberos
 ```
+-->
 ---
 
 ### Building Your Own Executable
@@ -211,6 +213,7 @@ Contents:
 
 ## Troubleshooting
 
+<!--
 ### Kerberos fails when using an IP address
 
 **Problem:** Kerberos requires an SPN based on the DC hostname (e.g., `ldap/dc1.vulnad.local`).
@@ -233,6 +236,7 @@ klist
 ```
 
 ---
+-->
 
 ### DNS resolution fails
 
