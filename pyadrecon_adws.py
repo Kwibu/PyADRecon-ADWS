@@ -20,11 +20,6 @@ import ssl
 import re
 import json
 import time
-try:
-    import dns.resolver
-    DNS_AVAILABLE = True
-except ImportError:
-    DNS_AVAILABLE = False
 import random
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Any, Tuple
@@ -992,6 +987,278 @@ class PyADRecon:
             
         return write_principals
 
+    def _is_well_known_high_privilege_principal(self, principal_name: str) -> bool:
+        """Check if a principal is a well-known high-privilege group/user that should be filtered from LAPS readers.
+        Returns True for default admin groups that are expected to have access.
+        """
+        principal_lower = principal_name.lower()
+        
+        # Well-known high-privilege groups and accounts that are expected to have LAPS access
+        well_known_high_priv = {
+            'nt authority\\system',
+            'builtin\\administrators',
+            '[group] domain admins',
+            '[group] enterprise admins',
+            '[group] administrators',
+            'account operators',
+            'backup operators',
+            '[group] account operators',
+            '[group] backup operators',
+            '[group] server operators',
+            'server operators',
+            '[group] domain controllers',
+            'enterprise domain controllers',
+        }
+        
+        return principal_lower in well_known_high_priv
+    
+    def _get_schema_guid(self, attribute_name: str) -> Optional[str]:
+        """Get the schemaIDGUID for a specific attribute.
+        Returns: GUID string in canonical format (e.g., 'a740f3f1-...').
+        """
+        try:
+            logger.debug(f"Looking up schema GUID for {attribute_name} in {self.schema_dn}")
+            entries = self.search(
+                search_base=self.schema_dn,
+                search_filter=f"(name={attribute_name})",
+                attributes=['schemaIDGUID']
+            )
+            
+            logger.debug(f"Schema search returned {len(entries) if entries else 0} entries")
+            
+            if entries and len(entries) > 0:
+                guid_attr = get_attr(entries[0], 'schemaIDGUID')
+                logger.debug(f"Got schemaIDGUID: {guid_attr}, type: {type(guid_attr)}")
+                
+                # ADWS returns binary data as base64-encoded strings
+                if guid_attr:
+                    import base64
+                    import uuid
+                    
+                    guid_bytes = None
+                    if isinstance(guid_attr, str):
+                        # Decode base64 string to bytes
+                        try:
+                            guid_bytes = base64.b64decode(guid_attr)
+                            logger.debug(f"Decoded base64 to {len(guid_bytes)} bytes")
+                        except Exception as e:
+                            logger.debug(f"Failed to decode base64: {e}")
+                    elif isinstance(guid_attr, bytes):
+                        guid_bytes = guid_attr
+                    
+                    if guid_bytes and len(guid_bytes) == 16:
+                        # AD stores schemaIDGUID in little-endian format
+                        guid_str = str(uuid.UUID(bytes_le=guid_bytes)).lower()
+                        logger.debug(f"Schema GUID for {attribute_name}: {guid_str}")
+                        return guid_str
+                    else:
+                        logger.debug(f"schemaIDGUID not 16 bytes (got {len(guid_bytes) if guid_bytes else 0})")
+                else:
+                    logger.debug(f"schemaIDGUID attribute is empty for {attribute_name}")
+        except Exception as e:
+            logger.debug(f"Could not get schema GUID for {attribute_name}: {e}")
+            import traceback
+            logger.debug(traceback.format_exc())
+        
+        return None
+    
+    def _guid_bytes_to_str(self, guid_bytes: bytes) -> str:
+        """Convert GUID bytes to canonical string format."""
+        import uuid
+        return str(uuid.UUID(bytes_le=guid_bytes)).lower()
+    
+    def _mask_to_rights(self, mask: int) -> list:
+        """Decode access mask to list of right names."""
+        ADS_RIGHT_DS_READ_PROP = 0x00000010
+        ADS_RIGHT_DS_CONTROL_ACCESS = 0x00000100
+        GENERIC_READ = 0x80000000
+        GENERIC_ALL = 0x10000000
+        WRITE_DAC = 0x00040000
+        WRITE_OWNER = 0x00080000
+        
+        rights = []
+        if mask & ADS_RIGHT_DS_READ_PROP:
+            rights.append("READ_PROP")
+        if mask & ADS_RIGHT_DS_CONTROL_ACCESS:
+            rights.append("CONTROL_ACCESS")
+        if mask & GENERIC_READ:
+            rights.append("GENERIC_READ")
+        if mask & GENERIC_ALL:
+            rights.append("GENERIC_ALL")
+        if mask & WRITE_DAC:
+            rights.append("WRITE_DAC")
+        if mask & WRITE_OWNER:
+            rights.append("WRITE_OWNER")
+        return rights
+    
+    def _parse_laps_readers(self, entry, laps_attr_guid: Optional[str] = None) -> list:
+        """Parse nTSecurityDescriptor to get principals with read access to ms-Mcs-AdmPwd attribute.
+        
+        Args:
+            entry: The ADWS entry (computer object)
+            laps_attr_guid: The schemaIDGUID for ms-Mcs-AdmPwd (forest-specific)
+        
+        Returns: list of dicts with principal, SID, rights, and why information.
+        """
+        results = []
+        
+        if not IMPACKET_AVAILABLE:
+            logger.debug("Impacket not available for ACL parsing")
+            return results
+        
+        # Get raw security descriptor bytes
+        sd_attr = get_attr(entry, 'nTSecurityDescriptor')
+        if not sd_attr:
+            logger.debug("No security descriptor data found for LAPS reader parsing")
+            return results
+        
+        # ADWS may return binary data as base64-encoded string
+        sd_data = None
+        if isinstance(sd_attr, str):
+            try:
+                import base64
+                sd_data = base64.b64decode(sd_attr)
+                logger.debug(f"Decoded base64 nTSecurityDescriptor to {len(sd_data)} bytes")
+            except Exception as e:
+                logger.debug(f"Failed to decode base64 nTSecurityDescriptor: {e}")
+                return results
+        elif isinstance(sd_attr, (bytes, bytearray)):
+            sd_data = sd_attr
+        else:
+            logger.debug(f"Unexpected nTSecurityDescriptor type: {type(sd_attr)}")
+            return results
+        
+        if not sd_data:
+            logger.debug("No security descriptor data after decoding")
+            return results
+        
+        # If we don't have the LAPS GUID, we can't do proper attribute-specific checks
+        if not laps_attr_guid:
+            logger.debug("No LAPS attribute GUID provided, cannot perform accurate checks")
+            return results
+        
+        try:
+            # Parse the security descriptor using impacket
+            sd = ldaptypes.SR_SECURITY_DESCRIPTOR(data=sd_data)
+            
+            # Check if DACL exists
+            if not sd['Dacl']:
+                logger.debug("No DACL in security descriptor")
+                return results
+            
+            # Access right constants
+            ADS_RIGHT_DS_CONTROL_ACCESS = 0x00000100
+            GENERIC_ALL = 0x10000000
+            WRITE_DAC = 0x00040000
+            WRITE_OWNER = 0x00080000
+            
+            # ACE type constants
+            ACCESS_ALLOWED_ACE = 0
+            ACCESS_ALLOWED_OBJECT_ACE = 5
+            ACE_OBJECT_TYPE_PRESENT = 0x1
+            
+            # Track seen principals to avoid duplicates
+            seen = set()
+            
+            # Parse each ACE in the DACL
+            for ace in sd['Dacl'].aces:
+                try:
+                    ace_type = ace['AceType']
+                    ace_body = ace['Ace']
+                    sid = ace_body['Sid'].formatCanonical()
+                    mask = ace_body['Mask']['Mask']
+                    try:
+                        inherited = bool(ace['AceFlags'] & 0x10) if 'AceFlags' in ace.fields else False
+                    except:
+                        inherited = False
+                    
+                    # Quick wins: if someone has GENERIC_ALL / WRITE_DAC / WRITE_OWNER on the computer object,
+                    # they can effectively get the LAPS value (or grant themselves rights)
+                    if mask & (GENERIC_ALL | WRITE_DAC | WRITE_OWNER):
+                        principal = self._resolve_sid_to_name(sid)
+                        key = (principal, sid, "FULL_CONTROL_PATH")
+                        if key not in seen:
+                            seen.add(key)
+                            rights_list = self._mask_to_rights(mask)
+                            results.append({
+                                "principal": principal,
+                                "sid": sid,
+                                "rights": rights_list,
+                                "ace_type": ace_type,
+                                "object_type": None,
+                                "inherited": inherited,
+                                "why": f"High privilege on computer ({', '.join(rights_list)})"
+                            })
+                        continue
+                    
+                    # Standard ACE (applies to whole object)
+                    if ace_type == ACCESS_ALLOWED_ACE:
+                        # For confidential attributes, CONTROL_ACCESS is key
+                        if mask & ADS_RIGHT_DS_CONTROL_ACCESS:
+                            principal = self._resolve_sid_to_name(sid)
+                            key = (principal, sid, "CTRL_ACCESS_ALL")
+                            if key not in seen:
+                                seen.add(key)
+                                rights_list = self._mask_to_rights(mask)
+                                results.append({
+                                    "principal": principal,
+                                    "sid": sid,
+                                    "rights": rights_list,
+                                    "ace_type": ace_type,
+                                    "object_type": None,
+                                    "inherited": inherited,
+                                    "why": "CONTROL_ACCESS on object (confidential attributes readable)"
+                                })
+                    
+                    # Object-specific ACE
+                    elif ace_type == ACCESS_ALLOWED_OBJECT_ACE:
+                        try:
+                            flags = int(ace_body['Flags']) if 'Flags' in ace_body.fields else 0
+                        except:
+                            flags = 0
+                        object_type = None
+                        
+                        # Get the ObjectType GUID if present
+                        if (flags & ACE_OBJECT_TYPE_PRESENT) and ('ObjectType' in ace_body.fields):
+                            try:
+                                ot = ace_body['ObjectType']
+                                if isinstance(ot, bytes) and len(ot) == 16:
+                                    object_type = self._guid_bytes_to_str(ot)
+                                else:
+                                    object_type = str(ot).lower()
+                            except:
+                                pass
+                        
+                        # Only count if ACE is specifically for ms-Mcs-AdmPwd (or if object_type absent -> applies to all)
+                        applies_to_laps = (object_type is None) or (object_type == laps_attr_guid)
+                        
+                        if applies_to_laps and (mask & ADS_RIGHT_DS_CONTROL_ACCESS):
+                            principal = self._resolve_sid_to_name(sid)
+                            key = (principal, sid, object_type, mask)
+                            if key not in seen:
+                                seen.add(key)
+                                rights_list = self._mask_to_rights(mask)
+                                results.append({
+                                    "principal": principal,
+                                    "sid": sid,
+                                    "rights": rights_list,
+                                    "ace_type": ace_type,
+                                    "object_type": object_type,
+                                    "inherited": inherited,
+                                    "why": f"Object-specific CONTROL_ACCESS for ms-Mcs-AdmPwd (GUID={object_type or 'all'})"
+                                })
+                                
+                except Exception as e:
+                    logger.debug(f"Error parsing ACE for LAPS readers: {e}")
+                    continue
+                    
+        except Exception as e:
+            logger.debug(f"Error parsing LAPS readers: {e}")
+            import traceback
+            logger.debug(traceback.format_exc())
+            
+        return results
+
     def _parse_enrollment_rights(self, entry) -> tuple:
         """Parse nTSecurityDescriptor to get principals with enrollment rights.
         Returns: (enrollment_principals list, auto_enrollment_principals list, owner_principal string)
@@ -1609,6 +1876,9 @@ class PyADRecon:
         results = []
         now = datetime.now(timezone.utc).replace(tzinfo=None)
 
+        # Build hostname-to-IP mapping from DNS records if available
+        hostname_to_ip, hostname_to_ipv6 = self._build_hostname_to_ip_cache()
+
         try:
             # Collect both computer objects AND user accounts ending in $ (service accounts)
             # Filter 1: Computer objects
@@ -1749,15 +2019,15 @@ class PyADRecon:
                 # Computer objects created by regular users will not show the creator's SID.
                 creator_sid_str = ""
 
-                # Resolve IP addresses via DNS using the DC as nameserver
+                # Get IP addresses from collected DNS records (offline lookup)
                 ipv4_address = ""
                 ipv6_address = ""
                 dns_hostname = get_attr(entry, 'dNSHostName', '')
                 if dns_hostname:
-                    try:
-                        ipv4_address, ipv6_address = self._resolve_dns(dns_hostname)
-                    except Exception as e:
-                        logger.debug(f"Failed to resolve {dns_hostname}: {e}")
+                    # Extract just the hostname part (before first dot) for lookup
+                    hostname_part = dns_hostname.split('.')[0].lower()
+                    ipv4_address = hostname_to_ip.get(hostname_part, '')
+                    ipv6_address = hostname_to_ipv6.get(hostname_part, '')
 
                 computer_dict = {
                     "UserName": get_attr(entry, 'sAMAccountName', ''),
@@ -2107,6 +2377,9 @@ class PyADRecon:
             except:
                 pass
 
+            # Build hostname-to-IP mapping from DNS records if available
+            hostname_to_ip, hostname_to_ipv6 = self._build_hostname_to_ip_cache()
+
             # Find DCs using userAccountControl
             entries = self.search(
                 search_base=self.base_dn,
@@ -2114,55 +2387,23 @@ class PyADRecon:
                 attributes=['name', 'dNSHostName', 'operatingSystem', 'serverReferenceBL']
             )
 
-            # Also try to get IP addresses from DNS records
-            dc_ips = {}
-            try:
-                dns_entries = self.search(
-                    search_base=f"CN=MicrosoftDNS,DC=DomainDnsZones,{self.base_dn}",
-                    search_filter="(&(objectClass=dnsNode)(!(dNSTombstoned=TRUE)))",
-                    attributes=['name', 'dnsRecord']
-                )
-                for dns_entry in dns_entries:
-                    dns_name = get_attr(dns_entry, 'name', '').lower()
-                    dns_records = get_attr_list(dns_entry, 'dnsRecord')
-                    for record in dns_records:
-                        # Try to parse A record (IPv4)
-                        if isinstance(record, bytes) and len(record) >= 24:
-                            # A record type = 1, check at offset 2-3
-                            record_type = struct.unpack('<H', record[2:4])[0]
-                            if record_type == 1:  # A record
-                                # IPv4 address is at offset 24
-                                ip = '.'.join(str(b) for b in record[24:28])
-                                dc_ips[dns_name] = ip
-            except Exception as e:
-                logger.debug(f"Could not query DNS records: {e}")
-
             for entry in entries:
                 
                 dc_name = safe_str(get_attr(entry, 'name', '')).upper()
                 hostname = safe_str(get_attr(entry, 'dNSHostName', ''))
                 
-                # Get IPv4 address - try multiple methods
+                # Get IPv4 address from offline DNS cache
                 ipv4 = ""
                 if hostname:
-                    # Try DNS records first
-                    hostname_lower = hostname.lower()
-                    if hostname_lower in dc_ips:
-                        ipv4 = dc_ips[hostname_lower]
-                    else:
-                        # Try short name
-                        short_name = hostname.split('.')[0].lower()
-                        if short_name in dc_ips:
-                            ipv4 = dc_ips[short_name]
-                        else:
-                            # Try socket resolution
-                            try:
-                                ipv4 = socket.gethostbyname(hostname)
-                            except:
-                                # If all else fails, and this is the DC we're connected to, use config IP
-                                if hostname.lower() == self.config.domain_controller.lower() or \
-                                   dc_name.lower() == self.config.domain_controller.lower():
-                                    ipv4 = self.config.domain_controller
+                    # Extract just the hostname part (before first dot) for lookup
+                    hostname_part = hostname.split('.')[0].lower()
+                    ipv4 = hostname_to_ip.get(hostname_part, '')
+                    
+                    # If not found and this is the DC we're connected to, use config IP
+                    if not ipv4:
+                        if hostname.lower() == self.config.domain_controller.lower() or \
+                           dc_name.lower() == self.config.domain_controller.lower():
+                            ipv4 = self.config.domain_controller
                 
                 # Get site information from serverReferenceBL
                 site = ""
@@ -2502,12 +2743,20 @@ class PyADRecon:
                 logger.warning("[*] LAPS is not installed in this environment")
                 return results
 
-            # Get LAPS passwords for computers
+            # Get the schemaIDGUID for ms-Mcs-AdmPwd (forest-specific)
+            logger.info("    Fetching ms-Mcs-AdmPwd schemaIDGUID...")
+            laps_attr_guid = self._get_schema_guid("ms-Mcs-AdmPwd")
+            if laps_attr_guid:
+                logger.info(f"    Found LAPS attribute GUID: {laps_attr_guid}")
+            else:
+                logger.warning("    Could not retrieve LAPS attribute GUID - reader detection may be inaccurate")
+
+            # Get LAPS passwords for computers - now including nTSecurityDescriptor to parse readers
             entries = self.search(
                 search_base=self.base_dn,
                 search_filter='(objectCategory=computer)',
                 attributes=['name', 'dNSHostName', 'ms-Mcs-AdmPwd', 'ms-Mcs-AdmPwdExpirationTime',
-                           'userAccountControl']
+                           'userAccountControl', 'nTSecurityDescriptor']
             )
 
             # Also get service accounts (user objects ending in $)
@@ -2515,7 +2764,7 @@ class PyADRecon:
                 search_base=self.base_dn,
                 search_filter="(&(objectCategory=person)(objectClass=user)(sAMAccountName=*$))",
                 attributes=['name', 'sAMAccountName', 'dNSHostName', 'ms-Mcs-AdmPwd', 'ms-Mcs-AdmPwdExpirationTime',
-                           'userAccountControl']
+                           'userAccountControl', 'nTSecurityDescriptor']
             )
             
             # Also get Managed Service Accounts (MSAs)
@@ -2523,7 +2772,7 @@ class PyADRecon:
                 search_base=self.base_dn,
                 search_filter='(objectClass=msDS-ManagedServiceAccount)',
                 attributes=['name', 'sAMAccountName', 'dNSHostName', 'ms-Mcs-AdmPwd', 'ms-Mcs-AdmPwdExpirationTime',
-                           'userAccountControl']
+                           'userAccountControl', 'nTSecurityDescriptor']
             )
 
             # Combine all result sets
@@ -2554,9 +2803,51 @@ class PyADRecon:
                     sam = get_attr(entry, 'sAMAccountName', '')
                     hostname = sam.rstrip('$') if sam else get_attr(entry, 'name', '')
 
-                # Note: ADWS doesn't easily support ACL parsing like LDAP does
-                # So we won't include Readers column for ADWS version
-                readers_str = ""
+                # Parse who can read the LAPS password with the attribute GUID
+                laps_readers = self._parse_laps_readers(entry, laps_attr_guid)
+                
+                # Format reader information with details, filtering out well-known high-privilege principals
+                if laps_readers:
+                    # Format: "USERNAME (type) - why" - make usernames prominent
+                    readers_formatted = []
+                    for reader in laps_readers:
+                        principal = reader.get('principal', 'Unknown')
+                        
+                        # Skip well-known high-privilege principals (Domain Admins, Enterprise Admins, etc.)
+                        if self._is_well_known_high_privilege_principal(principal):
+                            continue
+                        
+                        # Extract clean username from principal name
+                        # e.g., "[User] lrvt" -> "lrvt" or "[Group] IT Admins" -> "IT Admins"
+                        if principal.startswith('['):
+                            # Format: [Type] Name
+                            parts = principal.split('] ', 1)
+                            if len(parts) == 2:
+                                principal_type = parts[0].replace('[', '')
+                                clean_name = parts[1]
+                            else:
+                                principal_type = 'Principal'
+                                clean_name = principal
+                        else:
+                            principal_type = 'Principal'
+                            clean_name = principal
+                        
+                        why = reader.get('why', '')
+                        # Simplify the "why" message for readability
+                        if 'Object-specific CONTROL_ACCESS for ms-Mcs-AdmPwd' in why:
+                            simplified_why = 'Explicit LAPS read permission'
+                        elif 'CONTROL_ACCESS on object' in why:
+                            simplified_why = 'General read permission on computer'
+                        elif 'High privilege on computer' in why:
+                            simplified_why = 'High-level access to computer'
+                        else:
+                            simplified_why = why
+                        
+                        readers_formatted.append(f"{clean_name} ({principal_type}) - {simplified_why}")
+                    
+                    readers_str = ", ".join(readers_formatted) if readers_formatted else "Only default admins"
+                else:
+                    readers_str = "" if not laps_attr_guid else "None detected"
 
                 results.append({
                     "Hostname": hostname,
@@ -2844,57 +3135,63 @@ class PyADRecon:
         
         return None
 
-    def _resolve_dns(self, hostname: str) -> Tuple[str, str]:
+    def _build_hostname_to_ip_cache(self) -> Tuple[Dict[str, str], Dict[str, str]]:
         """
-        Resolve hostname to IPv4 and IPv6 addresses using the DC as DNS server.
+        Build hostname-to-IP mapping from already-collected DNS records.
+        This avoids the need for live DNS lookups and works offline.
         
-        Args:
-            hostname: DNS hostname to resolve (e.g., 'dc.vulnad.local')
-            
+        First tries to use self.results['DNSRecords'], then falls back to reading
+        the DNSRecords.csv file if it exists in the output directory.
+        
         Returns:
-            Tuple of (ipv4_address, ipv6_address) as strings, empty string if not found
+            Tuple of (hostname_to_ipv4, hostname_to_ipv6) dictionaries
         """
-        ipv4 = ""
-        ipv6 = ""
+        hostname_to_ip = {}
+        hostname_to_ipv6 = {}
         
-        if not hostname:
-            return ipv4, ipv6
+        # Try to use already-collected DNS records first
+        if 'DNSRecords' in self.results and self.results['DNSRecords']:
+            logger.debug(f"Building offline DNS cache from {len(self.results['DNSRecords'])} DNS records")
+            for record in self.results['DNSRecords']:
+                if record.get('RecordType') == 'A':
+                    hostname = record.get('Name', '').rstrip('.')
+                    ip = record.get('Data', '')
+                    if hostname and ip:
+                        hostname_to_ip[hostname.lower()] = ip
+                elif record.get('RecordType') == 'AAAA':
+                    hostname = record.get('Name', '').rstrip('.')
+                    ipv6 = record.get('Data', '')
+                    if hostname and ipv6:
+                        hostname_to_ipv6[hostname.lower()] = ipv6
+            
+            logger.debug(f"Built offline DNS cache: {len(hostname_to_ip)} IPv4, {len(hostname_to_ipv6)} IPv6 records")
+        else:
+            # Try to read from CSV file if it exists (for offline analysis)
+            csv_path = os.path.join(self.config.output_dir, 'CSV-Files', 'DNSRecords.csv')
+            if os.path.exists(csv_path):
+                try:
+                    logger.debug(f"Reading DNS records from {csv_path} for offline lookup")
+                    with open(csv_path, 'r', encoding='utf-8') as f:
+                        reader = csv.DictReader(f)
+                        for record in reader:
+                            if record.get('RecordType') == 'A':
+                                hostname = record.get('Name', '').rstrip('.')
+                                ip = record.get('Data', '')
+                                if hostname and ip:
+                                    hostname_to_ip[hostname.lower()] = ip
+                            elif record.get('RecordType') == 'AAAA':
+                                hostname = record.get('Name', '').rstrip('.')
+                                ipv6 = record.get('Data', '')
+                                if hostname and ipv6:
+                                    hostname_to_ipv6[hostname.lower()] = ipv6
+                    
+                    logger.debug(f"Built offline DNS cache from CSV: {len(hostname_to_ip)} IPv4, {len(hostname_to_ipv6)} IPv6 records")
+                except Exception as e:
+                    logger.debug(f"Could not read DNS records from CSV: {e}")
+            else:
+                logger.debug("No DNSRecords available for offline lookup (not yet collected and no CSV found)")
         
-        try:
-            import dns.resolver
-            
-            # Create a custom resolver using the DC as nameserver
-            resolver = dns.resolver.Resolver()
-            resolver.nameservers = [self.config.domain_controller]
-            resolver.timeout = 2
-            resolver.lifetime = 2
-            
-            # Try IPv4 (A record)
-            try:
-                answers = resolver.resolve(hostname, 'A')
-                if answers:
-                    ipv4 = str(answers[0])
-            except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.NoNameservers, dns.exception.Timeout):
-                pass  # No IPv4 record found
-            except Exception as e:
-                logger.debug(f"DNS A lookup error for {hostname}: {e}")
-            
-            # Try IPv6 (AAAA record)
-            try:
-                answers = resolver.resolve(hostname, 'AAAA')
-                if answers:
-                    ipv6 = str(answers[0])
-            except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.NoNameservers, dns.exception.Timeout):
-                pass  # No IPv6 record found
-            except Exception as e:
-                logger.debug(f"DNS AAAA lookup error for {hostname}: {e}")
-                
-        except ImportError:
-            logger.debug(f"dnspython not available, skipping DNS resolution")
-        except Exception as e:
-            logger.debug(f"DNS resolution error for {hostname}: {e}")
-        
-        return ipv4, ipv6
+        return hostname_to_ip, hostname_to_ipv6
 
     def _convert_time_to_days(self, value) -> float:
         """Convert Windows time interval to days."""
@@ -4543,6 +4840,8 @@ class PyADRecon:
                 ('Sites', self.config.collect_sites, self.collect_sites),
                 ('Subnets', self.config.collect_subnets, self.collect_subnets),
                 ('SchemaHistory', self.config.collect_schema, self.collect_schema_history),
+                ('DNSZones', self.config.collect_dns_zones, self.collect_dns_zones),
+                ('DNSRecords', self.config.collect_dns_records, self.collect_dns_records),
                 ('DomainControllers', self.config.collect_dcs, self.collect_domain_controllers),
                 ('PasswordPolicy', self.config.collect_password_policy, self.collect_password_policy),
                 ('FineGrainedPasswordPolicy', self.config.collect_fgpp, self.collect_fine_grained_password_policies),
@@ -4555,8 +4854,6 @@ class PyADRecon:
                 ('OUs', self.config.collect_ous, self.collect_ous),
                 ('GPOs', self.config.collect_gpos, self.collect_gpos),
                 ('gPLinks', self.config.collect_gplinks, self.collect_gplinks),
-                ('DNSZones', self.config.collect_dns_zones, self.collect_dns_zones),
-                ('DNSRecords', self.config.collect_dns_records, self.collect_dns_records),
                 ('LAPS', self.config.collect_laps, self.collect_laps),
                 ('Bitlocker', self.config.collect_bitlocker, self.collect_bitlocker),
                 ('Printers', self.config.collect_printers, self.collect_printers),
@@ -4650,6 +4947,7 @@ class PyADRecon:
         yellow_fill = PatternFill(start_color="FFFFB3", end_color="FFFFB3", fill_type="solid")  # Light yellow
         
         # Regex pattern to detect passwords in description/info fields
+        # Matches common password-related keywords in multiple languages
         password_pattern = re.compile(
             r'\b(pw|password|passwort|kennwort|initial|pwd|pass|secret|cred|credential)\b',
             re.IGNORECASE
@@ -4666,21 +4964,21 @@ class PyADRecon:
                 
                 # Critical security issues (RED)
                 red_columns = {
-                    "Password Never Expires": (True, "TRUE"),
-                    "Reversible Password Encryption": (True, "TRUE"),
-                    "Does Not Require Pre Auth": (True, "TRUE"),
-                    "Password Not Required": (True, "TRUE"),
-                    "Kerberos DES Only": (True, "TRUE"),
+                    "Password Never Expires": (True, "TRUE", "True"),
+                    "Reversible Password Encryption": (True, "TRUE", "True"),
+                    "Does Not Require Pre Auth": (True, "TRUE", "True"),
+                    "Password Not Required": (True, "TRUE", "True"),
+                    "Kerberos DES Only": (True, "TRUE", "True"),
                     "AdminCount": (1, "1"),
                 }
                 
                 # Medium security issues (ORANGE)
                 orange_columns = {
                     "Delegation Type": ("Unconstrained", "Unconstrained"),
-                    "Must Change Password at Logon": (True, "TRUE"),
-                    "Cannot Change Password": (True, "TRUE"),
-                    "Account Locked Out": (True, "TRUE"),
-                    "HasSPN": (True, "TRUE"),
+                    "Must Change Password at Logon": (True, "TRUE", "True"),
+                    "Cannot Change Password": (True, "TRUE", "True"),
+                    "Account Locked Out": (True, "TRUE", "True"),
+                    "HasSPN": (True, "TRUE", "True"),
                 }
                 
                 # Informational/warning (YELLOW)
@@ -4704,99 +5002,123 @@ class PyADRecon:
                     is_disabled = False
                     if "Enabled" in headers:
                         enabled_cell = ws.cell(row=row_idx, column=headers["Enabled"])
-                        if enabled_cell.value in [False, "FALSE"]:
+                        if enabled_cell.value in (False, "FALSE", "False"):
                             is_disabled = True
+                            # Color Enabled cell yellow for disabled accounts (informational/warning)
+                            # Yellow indicates account status without implying "bad" (red) or "good" (green)
                             enabled_cell.fill = yellow_fill
+                        # Enabled accounts remain uncolored (neutral state)
                     
                     # RED: Critical security issues
-                    for col_name, (check_val, str_val) in red_columns.items():
+                    for col_name, trigger_values in red_columns.items():
                         if col_name in headers:
                             cell = ws.cell(row=row_idx, column=headers[col_name])
-                            if cell.value in [check_val, str_val]:
+                            if cell.value in trigger_values:
                                 cell.fill = red_fill
                     
                     # ORANGE: Medium security issues
-                    for col_name, (check_val, str_val) in orange_columns.items():
+                    for col_name, trigger_values in orange_columns.items():
                         if col_name in headers:
                             cell = ws.cell(row=row_idx, column=headers[col_name])
-                            if cell.value in [check_val, str_val]:
+                            if cell.value in trigger_values:
                                 cell.fill = orange_fill
                     
                     # YELLOW: Informational/warnings
                     for col_name in yellow_columns:
                         if col_name in headers:
                             cell = ws.cell(row=row_idx, column=headers[col_name])
-                            if cell.value in [True, "TRUE"]:
+                            if cell.value in (True, "TRUE", "True"):
                                 cell.fill = yellow_fill
                     
                     # Special: Gray out entire row for disabled users (after other formatting)
                     if is_disabled:
                         gray_fill = PatternFill(start_color="E0E0E0", end_color="E0E0E0", fill_type="solid")
                         for col in range(1, ws.max_column + 1):
+                            # Only gray cells that haven't been colored by security issues
                             cell = ws.cell(row=row_idx, column=col)
+                            # Skip the Enabled column itself (keep it yellow)
                             if col != headers.get("Enabled"):
+                                # Keep security highlighting visible
                                 if cell.fill.start_color.rgb not in ["00FFB3BA", "00FFD9B3", "00FFFFB3"]:
                                     cell.fill = gray_fill
         
         # Format Computers sheet
         if "Computers" in wb.sheetnames:
             ws = wb["Computers"]
-            if ws.max_row > 1:
+            if ws.max_row > 1:  # Has data beyond header
+                # Find column indices for security-relevant fields
                 headers = {cell.value: cell.column for cell in ws[1]}
                 
+                # Critical security issues (RED)
                 red_columns = {
                     "Delegation Type": ("Unconstrained", "Unconstrained"),
                 }
                 
+                # Medium security issues (ORANGE)
                 orange_columns = {
-                    f"Password Age (> {self.config.password_age_days} days)": (True, "TRUE"),
+                    f"Password Age (> {self.config.password_age_days} days)": (True, "TRUE", "True"),
                 }
                 
+                # Informational/warning (YELLOW)
                 yellow_columns = [
                     f"Dormant (> {self.config.dormant_days} days)",
                 ]
                 
+                # Apply formatting to data rows (skip header)
                 for row_idx in range(2, ws.max_row + 1):
+                    # First, check Enabled status and color the Enabled cell itself
                     is_disabled = False
                     if "Enabled" in headers:
                         enabled_cell = ws.cell(row=row_idx, column=headers["Enabled"])
-                        if enabled_cell.value in [False, "FALSE"]:
+                        if enabled_cell.value in (False, "FALSE", "False"):
                             is_disabled = True
+                            # Color Enabled cell yellow for disabled computers (informational/warning)
+                            # Yellow indicates computer status without implying "bad" (red) or "good" (green)
                             enabled_cell.fill = yellow_fill
+                        # Enabled computers remain uncolored (neutral state)
                     
-                    for col_name, (check_val, str_val) in red_columns.items():
+                    # RED: Critical security issues
+                    for col_name, trigger_values in red_columns.items():
                         if col_name in headers:
                             cell = ws.cell(row=row_idx, column=headers[col_name])
-                            if cell.value in [check_val, str_val]:
+                            if cell.value in trigger_values:
                                 cell.fill = red_fill
                     
-                    for col_name, (check_val, str_val) in orange_columns.items():
+                    # ORANGE: Medium security issues
+                    for col_name, trigger_values in orange_columns.items():
                         if col_name in headers:
                             cell = ws.cell(row=row_idx, column=headers[col_name])
-                            if cell.value in [check_val, str_val]:
+                            if cell.value in trigger_values:
                                 cell.fill = orange_fill
                     
+                    # YELLOW: Informational/warnings
                     for col_name in yellow_columns:
                         if col_name in headers:
                             cell = ws.cell(row=row_idx, column=headers[col_name])
-                            if cell.value in [True, "TRUE"]:
+                            if cell.value in (True, "TRUE", "True"):
                                 cell.fill = yellow_fill
                     
+                    # Special: Gray out entire row for disabled computers (after other formatting)
                     if is_disabled:
                         gray_fill = PatternFill(start_color="E0E0E0", end_color="E0E0E0", fill_type="solid")
                         for col in range(1, ws.max_column + 1):
+                            # Only gray cells that haven't been colored by security issues
                             cell = ws.cell(row=row_idx, column=col)
+                            # Skip the Enabled column itself (keep it yellow)
                             if col != headers.get("Enabled"):
+                                # Keep security highlighting visible
                                 if cell.fill.start_color.rgb not in ["00FFB3BA", "00FFD9B3", "00FFFFB3"]:
                                     cell.fill = gray_fill
         
         # Format PasswordPolicy sheet
         if "PasswordPolicy" in wb.sheetnames:
             ws = wb["PasswordPolicy"]
-            if ws.max_row > 1:
+            if ws.max_row > 1:  # Has data beyond header
+                # Find column indices
                 headers = {cell.value: cell.column for cell in ws[1]}
-                
+                import re
                 def parse_interval_to_days(interval_str):
+                    # Parse 'Xd Yh Zm Ws' to total days (float)
                     if not interval_str or not isinstance(interval_str, str):
                         return None
                     pattern = r"(?:(\d+(?:\.\d+)?)d)?\s*(?:(\d+(?:\.\d+)?)h)?\s*(?:(\d+(?:\.\d+)?)m)?\s*(?:(\d+(?:\.\d+)?)s)?"
@@ -4809,8 +5131,8 @@ class PyADRecon:
                         return total_days
                     except Exception:
                         return None
-                
                 def parse_interval_to_minutes(interval_str):
+                    # Parse 'Xd Yh Zm Ws' to total minutes (float)
                     if not interval_str or not isinstance(interval_str, str):
                         return None
                     pattern = r"(?:(\d+(?:\.\d+)?)d)?\s*(?:(\d+(?:\.\d+)?)h)?\s*(?:(\d+(?:\.\d+)?)m)?\s*(?:(\d+(?:\.\d+)?)s)?"
@@ -4823,12 +5145,11 @@ class PyADRecon:
                         return total_minutes
                     except Exception:
                         return None
-                
                 if "Current Value" in headers and "CIS Benchmark 2024-25" in headers:
                     current_col = headers["Current Value"]
                     cis_col = headers["CIS Benchmark 2024-25"]
                     policy_col = headers["Policy"]
-                    
+                    # Apply formatting to data rows (skip header)
                     for row_idx in range(2, ws.max_row + 1):
                         policy = ws.cell(row=row_idx, column=policy_col).value
                         current_val = ws.cell(row=row_idx, column=current_col).value
@@ -4837,15 +5158,17 @@ class PyADRecon:
                             current_val_str = str(current_val).strip()
                             cis_val_str = str(cis_val).strip()
                             non_compliant = False
-                            
                             if "Enforce password history" in str(policy):
+                                # CIS: 24 or more
                                 if current_val_str.isdigit() and int(current_val_str) < 24:
                                     non_compliant = True
                             elif "Maximum password age" in str(policy):
+                                # CIS: 1 to 365 days
                                 days = parse_interval_to_days(current_val_str)
                                 if days is None or days < 1 or days > 365:
                                     non_compliant = True
                             elif "Minimum password age" in str(policy):
+                                # CIS: 1 or more days
                                 days = parse_interval_to_days(current_val_str)
                                 if days is None or days < 1:
                                     non_compliant = True
@@ -4859,6 +5182,7 @@ class PyADRecon:
                                 if current_val_str.upper() != "FALSE":
                                     non_compliant = True
                             elif "Account lockout duration" in str(policy):
+                                # CIS: 15 or more days (0 is also acceptable for manual unlock)
                                 days = parse_interval_to_days(current_val_str)
                                 if days is None or (days != 0 and days < 15):
                                     non_compliant = True
@@ -4870,10 +5194,11 @@ class PyADRecon:
                                 elif current_val_str == "Not Set" or current_val_str == "0":
                                     non_compliant = True
                             elif "Reset account lockout counter" in str(policy):
+                                # CIS: 15 or more minutes
                                 mins = parse_interval_to_minutes(current_val_str)
                                 if mins is None or mins < 15:
                                     non_compliant = True
-                            
+                            # Highlight the Current Value cell - orange for non-compliant, green for compliant
                             if non_compliant:
                                 ws.cell(row=row_idx, column=current_col).fill = orange_fill
                             else:
@@ -4885,40 +5210,33 @@ class PyADRecon:
         # Format LAPS sheet
         if "LAPS" in wb.sheetnames:
             ws = wb["LAPS"]
-            if ws.max_row > 1:
+            if ws.max_row > 1:  # Has data beyond header
+                # Find column indices
                 headers = {cell.value: cell.column for cell in ws[1]}
                 
                 if "Password" in headers:
                     password_col = headers["Password"]
                     
+                    # Apply formatting to data rows (skip header)
                     for row_idx in range(2, ws.max_row + 1):
                         password_cell = ws.cell(row=row_idx, column=password_col)
+                        # Highlight password field YELLOW if it contains a value
                         if password_cell.value and str(password_cell.value).strip():
                             password_cell.fill = yellow_fill
         
         # Format gMSA sheet
         if "gMSA" in wb.sheetnames:
             ws = wb["gMSA"]
-            if ws.max_row > 1:
+            if ws.max_row > 1:  # Has data beyond header
+                # Find column indices for security-relevant fields
                 headers = {cell.value: cell.column for cell in ws[1]}
                 
-                for row_idx in range(2, ws.max_row + 1):
-                    if "Enabled" in headers:
-                        enabled_cell = ws.cell(row=row_idx, column=headers["Enabled"])
-                        if enabled_cell.value in [False, "FALSE"]:
-                            enabled_cell.fill = yellow_fill
-        
-        # Format dMSA sheet (Managed Service Accounts)
-        if "dMSA" in wb.sheetnames:
-            ws = wb["dMSA"]
-            if ws.max_row > 1:
-                headers = {cell.value: cell.column for cell in ws[1]}
-                
+                # Apply formatting to data rows (skip header)
                 for row_idx in range(2, ws.max_row + 1):
                     # Check for badSuccessor vulnerability (CRITICAL - RED)
                     if "badSuccessor Vulnerable" in headers:
                         vuln_cell = ws.cell(row=row_idx, column=headers["badSuccessor Vulnerable"])
-                        if vuln_cell.value in [True, "TRUE"]:
+                        if vuln_cell.value in (True, "TRUE", "True"):
                             vuln_cell.fill = red_fill
                     
                     # Highlight Risk Level column
@@ -4926,16 +5244,55 @@ class PyADRecon:
                         risk_cell = ws.cell(row=row_idx, column=headers["Risk Level"])
                         risk_value = str(risk_cell.value).upper() if risk_cell.value else ""
                         
-                        if risk_value in ["CRITICAL", "HIGH"]:
+                        if risk_value == "CRITICAL":
+                            risk_cell.fill = red_fill
+                        elif risk_value == "HIGH":
                             risk_cell.fill = red_fill
                         elif risk_value == "MEDIUM":
                             risk_cell.fill = orange_fill
                     
+                    # Highlight disabled accounts (YELLOW - informational)
                     if "Enabled" in headers:
                         enabled_cell = ws.cell(row=row_idx, column=headers["Enabled"])
-                        if enabled_cell.value in [False, "FALSE"]:
+                        if enabled_cell.value in (False, "FALSE", "False"):
                             enabled_cell.fill = yellow_fill
         
+        # Format dMSA sheet
+
+        # Format dMSA sheet
+        if "dMSA" in wb.sheetnames:
+            ws = wb["dMSA"]
+            if ws.max_row > 1:  # Has data beyond header
+                # Find column indices for security-relevant fields
+                headers = {cell.value: cell.column for cell in ws[1]}
+                
+                # Apply formatting to data rows (skip header)
+                for row_idx in range(2, ws.max_row + 1):
+                    # Check for badSuccessor vulnerability (CRITICAL - RED)
+                    if "badSuccessor Vulnerable" in headers:
+                        vuln_cell = ws.cell(row=row_idx, column=headers["badSuccessor Vulnerable"])
+                        if vuln_cell.value in (True, "TRUE", "True"):
+                            vuln_cell.fill = red_fill
+                    
+                    # Highlight Risk Level column
+                    if "Risk Level" in headers:
+                        risk_cell = ws.cell(row=row_idx, column=headers["Risk Level"])
+                        risk_value = str(risk_cell.value).upper() if risk_cell.value else ""
+                        
+                        if risk_value == "CRITICAL":
+                            risk_cell.fill = red_fill
+                        elif risk_value == "HIGH":
+                            risk_cell.fill = red_fill
+                        elif risk_value == "MEDIUM":
+                            risk_cell.fill = orange_fill
+                    
+                    # Highlight disabled accounts (YELLOW - informational)
+                    if "Enabled" in headers:
+                        enabled_cell = ws.cell(row=row_idx, column=headers["Enabled"])
+                        if enabled_cell.value in (False, "FALSE", "False"):
+                            enabled_cell.fill = yellow_fill
+        
+
         # Format CertificateTemplates sheet
         if "CertificateTemplates" in wb.sheetnames:
             ws = wb["CertificateTemplates"]
@@ -4973,7 +5330,7 @@ class PyADRecon:
                     # Highlight critical individual flags
                     if "Enrollee Supplies Subject" in headers:
                         enrollee_cell = ws.cell(row=row_idx, column=headers["Enrollee Supplies Subject"])
-                        if enrollee_cell.value in [True, "TRUE"]:
+                        if enrollee_cell.value in (True, "TRUE", "True"):
                             # Only highlight red if this is actually part of an ESC1 vulnerability
                             # Check if this row has ESC1 flagged
                             is_esc1 = False
@@ -4989,47 +5346,47 @@ class PyADRecon:
                     # Highlight Client Authentication (ORANGE - critical for exploitation)
                     if "Client Authentication" in headers:
                         client_auth_cell = ws.cell(row=row_idx, column=headers["Client Authentication"])
-                        if client_auth_cell.value in [True, "TRUE"]:
+                        if client_auth_cell.value in (True, "TRUE", "True"):
                             client_auth_cell.fill = orange_fill
                     
                     # Highlight Any Purpose EKU (ORANGE - allows arbitrary usage)
                     if "Any Purpose EKU" in headers:
                         any_purpose_cell = ws.cell(row=row_idx, column=headers["Any Purpose EKU"])
-                        if any_purpose_cell.value in [True, "TRUE"]:
+                        if any_purpose_cell.value in (True, "TRUE", "True"):
                             any_purpose_cell.fill = orange_fill
                     
                     # Highlight Enrollment Agent (ORANGE - can request certs for others)
                     if "Enrollment Agent" in headers:
                         enrollment_agent_cell = ws.cell(row=row_idx, column=headers["Enrollment Agent"])
-                        if enrollment_agent_cell.value in [True, "TRUE"]:
+                        if enrollment_agent_cell.value in (True, "TRUE", "True"):
                             enrollment_agent_cell.fill = orange_fill
                     
                     # Highlight Allows SAN (ORANGE - similar to Enrollee Supplies Subject)
                     if "Allows SAN" in headers:
                         allows_san_cell = ws.cell(row=row_idx, column=headers["Allows SAN"])
-                        if allows_san_cell.value in [True, "TRUE"]:
+                        if allows_san_cell.value in (True, "TRUE", "True"):
                             allows_san_cell.fill = orange_fill
                     
                     # Highlight Exportable Key (YELLOW - private key can be exported)
                     if "Exportable Key" in headers:
                         exportable_key_cell = ws.cell(row=row_idx, column=headers["Exportable Key"])
-                        if exportable_key_cell.value in [True, "TRUE"]:
+                        if exportable_key_cell.value in (True, "TRUE", "True"):
                             exportable_key_cell.fill = yellow_fill
                     
                     # Highlight Auto-Enrollment (YELLOW - informational, auto-enrollment enabled)
                     if "Auto-Enrollment" in headers:
                         auto_enrollment_cell = ws.cell(row=row_idx, column=headers["Auto-Enrollment"])
-                        if auto_enrollment_cell.value in [True, "TRUE"]:
+                        if auto_enrollment_cell.value in (True, "TRUE", "True"):
                             auto_enrollment_cell.fill = yellow_fill
                     
                     # Highlight Requires Manager Approval (GREEN when TRUE, ORANGE when FALSE)
                     if "Requires Manager Approval" in headers:
                         approval_cell = ws.cell(row=row_idx, column=headers["Requires Manager Approval"])
-                        if approval_cell.value in [True, "TRUE"]:
+                        if approval_cell.value in (True, "TRUE", "True"):
                             # Green for approval required (good security)
                             green_fill = PatternFill(start_color="B3FFB3", end_color="B3FFB3", fill_type="solid")
                             approval_cell.fill = green_fill
-                        elif approval_cell.value in [False, "FALSE"]:
+                        elif approval_cell.value in (False, "FALSE", "False"):
                             # Orange for no approval required (risky)
                             approval_cell.fill = orange_fill
         
@@ -5040,14 +5397,16 @@ class PyADRecon:
                 headers = {cell.value: cell.column for cell in ws[1]}
                 
                 for row_idx in range(2, ws.max_row + 1):
+                    # Highlight AdminCount (ORANGE - privileged group)
                     if "AdminCount" in headers:
                         admin_cell = ws.cell(row=row_idx, column=headers["AdminCount"])
                         if admin_cell.value in [1, "1", True, "TRUE"]:
                             admin_cell.fill = orange_fill
                     
+                    # Highlight SIDHistory (RED - potential security risk, indicates domain migration or SID injection)
                     if "SIDHistory" in headers:
                         sid_history_cell = ws.cell(row=row_idx, column=headers["SIDHistory"])
-                        if sid_history_cell.value and str(sid_history_cell.value).strip():
+                        if sid_history_cell.value and str(sid_history_cell.value).strip() and str(sid_history_cell.value) != "":
                             sid_history_cell.fill = red_fill
         
         # Format DomainControllers sheet
@@ -5057,6 +5416,7 @@ class PyADRecon:
                 headers = {cell.value: cell.column for cell in ws[1]}
                 
                 for row_idx in range(2, ws.max_row + 1):
+                    # Highlight LDAP Signing (RED if not required)
                     if "LDAP Signing" in headers:
                         signing_cell = ws.cell(row=row_idx, column=headers["LDAP Signing"])
                         if signing_cell.value in ["Not Required", "NOT REQUIRED", False, "FALSE"]:
@@ -5065,6 +5425,7 @@ class PyADRecon:
                             green_fill = PatternFill(start_color="B3FFB3", end_color="B3FFB3", fill_type="solid")
                             signing_cell.fill = green_fill
                     
+                    # Highlight LDAP Channel Binding (RED if not required)
                     if "LDAP Channel Binding" in headers:
                         binding_cell = ws.cell(row=row_idx, column=headers["LDAP Channel Binding"])
                         if binding_cell.value in ["Not Required", "NOT REQUIRED", False, "FALSE"]:
@@ -5073,18 +5434,53 @@ class PyADRecon:
                             green_fill = PatternFill(start_color="B3FFB3", end_color="B3FFB3", fill_type="solid")
                             binding_cell.fill = green_fill
                     
+                    # Highlight SMB1 (RED if enabled - deprecated and insecure)
                     if "SMB1(NT LM 0.12)" in headers:
                         smb1_cell = ws.cell(row=row_idx, column=headers["SMB1(NT LM 0.12)"])
-                        if smb1_cell.value in [True, "TRUE"]:
+                        if smb1_cell.value in (True, "TRUE", "True"):
                             smb1_cell.fill = red_fill
                     
+                    # Highlight SMB Signing (RED if not enabled)
                     if "SMB Signing" in headers:
                         signing_cell = ws.cell(row=row_idx, column=headers["SMB Signing"])
-                        if signing_cell.value in [False, "FALSE"]:
+                        if signing_cell.value in (False, "FALSE", "False"):
                             signing_cell.fill = red_fill
-                        elif signing_cell.value in [True, "TRUE"]:
+                        elif signing_cell.value in (True, "TRUE", "True"):
                             green_fill = PatternFill(start_color="B3FFB3", end_color="B3FFB3", fill_type="solid")
                             signing_cell.fill = green_fill
+        
+        # Format FineGrainedPasswordPolicy sheet
+        if "FineGrainedPasswordPolicy" in wb.sheetnames:
+            ws = wb["FineGrainedPasswordPolicy"]
+            if ws.max_row > 1:
+                headers = {cell.value: cell.column for cell in ws[1]}
+                
+                for row_idx in range(2, ws.max_row + 1):
+                    # Highlight weak password policies (similar to PasswordPolicy sheet)
+                    if "Minimum Password Length" in headers:
+                        length_cell = ws.cell(row=row_idx, column=headers["Minimum Password Length"])
+                        try:
+                            length_val = int(length_cell.value) if length_cell.value else 0
+                            if length_val < 14:
+                                length_cell.fill = orange_fill
+                        except (ValueError, TypeError):
+                            pass
+                    
+                    # Highlight Reversible Encryption (RED if enabled)
+                    if "Reversible Encryption Enabled" in headers:
+                        rev_enc_cell = ws.cell(row=row_idx, column=headers["Reversible Encryption Enabled"])
+                        if rev_enc_cell.value in (True, "TRUE", "True"):
+                            rev_enc_cell.fill = red_fill
+                    
+                    # Highlight low lockout threshold
+                    if "Lockout Threshold" in headers:
+                        lockout_cell = ws.cell(row=row_idx, column=headers["Lockout Threshold"])
+                        try:
+                            lockout_val = int(lockout_cell.value) if lockout_cell.value else 0
+                            if lockout_val == 0 or lockout_val > 5:
+                                lockout_cell.fill = orange_fill
+                        except (ValueError, TypeError):
+                            pass
         
         # Format UserSPNs sheet
         if "UserSPNs" in wb.sheetnames:
@@ -5093,9 +5489,10 @@ class PyADRecon:
                 headers = {cell.value: cell.column for cell in ws[1]}
                 
                 for row_idx in range(2, ws.max_row + 1):
+                    # Highlight disabled accounts (YELLOW - informational)
                     if "Enabled" in headers:
                         enabled_cell = ws.cell(row=row_idx, column=headers["Enabled"])
-                        if enabled_cell.value in [False, "FALSE"]:
+                        if enabled_cell.value in (False, "FALSE", "False"):
                             enabled_cell.fill = yellow_fill
         
         # Format ComputerSPNs sheet
@@ -5105,9 +5502,10 @@ class PyADRecon:
                 headers = {cell.value: cell.column for cell in ws[1]}
                 
                 for row_idx in range(2, ws.max_row + 1):
+                    # Highlight disabled accounts (YELLOW - informational)
                     if "Enabled" in headers:
                         enabled_cell = ws.cell(row=row_idx, column=headers["Enabled"])
-                        if enabled_cell.value in [False, "FALSE"]:
+                        if enabled_cell.value in (False, "FALSE", "False"):
                             enabled_cell.fill = yellow_fill
         
         # Format Domain sheet
@@ -5117,6 +5515,7 @@ class PyADRecon:
                 headers = {cell.value: cell.column for cell in ws[1]}
                 
                 for row_idx in range(2, ws.max_row + 1):
+                    # Highlight Machine Account Quota (ORANGE if > 0, GREEN if 0)
                     if "Machine Account Quota" in headers:
                         quota_cell = ws.cell(row=row_idx, column=headers["Machine Account Quota"])
                         try:
@@ -5132,10 +5531,12 @@ class PyADRecon:
         # Format ProtectedGroups sheet
         if "ProtectedGroups" in wb.sheetnames:
             ws = wb["ProtectedGroups"]
-            if ws.max_row > 1:
+            if ws.max_row > 1:  # Has data beyond header
                 headers = {cell.value: cell.column for cell in ws[1]}
                 
+                # Apply formatting to data rows (skip header)
                 for row_idx in range(2, ws.max_row + 1):
+                    # Highlight Risk Level column
                     if "Risk Level" in headers:
                         risk_cell = ws.cell(row=row_idx, column=headers["Risk Level"])
                         risk_value = str(risk_cell.value).upper() if risk_cell.value else ""
@@ -5144,7 +5545,9 @@ class PyADRecon:
                             risk_cell.fill = red_fill
                         elif risk_value == "MEDIUM":
                             risk_cell.fill = orange_fill
+                        # Low risk remains uncolored (not a problem, just normal/expected)
                     
+                    # Highlight In Protected Users Group column (GREEN when Yes, RED when No for high-risk accounts)
                     if "In Protected Users Group" in headers and "Risk Level" in headers:
                         protected_cell = ws.cell(row=row_idx, column=headers["In Protected Users Group"])
                         risk_cell = ws.cell(row=row_idx, column=headers["Risk Level"])
@@ -5154,6 +5557,7 @@ class PyADRecon:
                             green_fill = PatternFill(start_color="B3FFB3", end_color="B3FFB3", fill_type="solid")
                             protected_cell.fill = green_fill
                         elif protected_cell.value in ["No", "NO", False, "FALSE"]:
+                            # Only highlight red for HIGH risk accounts not in Protected Users
                             if risk_value in ["CRITICAL", "HIGH"]:
                                 protected_cell.fill = red_fill
                             elif risk_value == "MEDIUM":
@@ -5162,10 +5566,12 @@ class PyADRecon:
         # Format krbtgt sheet
         if "krbtgt" in wb.sheetnames:
             ws = wb["krbtgt"]
-            if ws.max_row > 1:
+            if ws.max_row > 1:  # Has data beyond header
                 headers = {cell.value: cell.column for cell in ws[1]}
                 
+                # Apply formatting to data rows (skip header)
                 for row_idx in range(2, ws.max_row + 1):
+                    # Highlight Risk Level column
                     if "Risk Level" in headers:
                         risk_cell = ws.cell(row=row_idx, column=headers["Risk Level"])
                         risk_value = str(risk_cell.value).upper() if risk_cell.value else ""
@@ -5174,7 +5580,9 @@ class PyADRecon:
                             risk_cell.fill = red_fill
                         elif risk_value == "MEDIUM":
                             risk_cell.fill = orange_fill
+                        # Low risk remains uncolored (not a problem, just normal/expected)
                     
+                    # Highlight Password Age Days if > 365 (CRITICAL)
                     if "Password Age (Days)" in headers:
                         age_cell = ws.cell(row=row_idx, column=headers["Password Age (Days)"])
                         try:
@@ -5186,6 +5594,7 @@ class PyADRecon:
                         except (ValueError, TypeError):
                             pass
                     
+                    # Highlight Supports RC4 (ORANGE - weak encryption)
                     if "Supports RC4" in headers:
                         rc4_cell = ws.cell(row=row_idx, column=headers["Supports RC4"])
                         if rc4_cell.value in [True, "TRUE", "Yes", "YES"]:
@@ -5194,10 +5603,12 @@ class PyADRecon:
         # Format ASREPRoastable sheet
         if "ASREPRoastable" in wb.sheetnames:
             ws = wb["ASREPRoastable"]
-            if ws.max_row > 1:
+            if ws.max_row > 1:  # Has data beyond header
                 headers = {cell.value: cell.column for cell in ws[1]}
                 
+                # Apply formatting to data rows (skip header)
                 for row_idx in range(2, ws.max_row + 1):
+                    # Highlight Risk Level column
                     if "Risk Level" in headers:
                         risk_cell = ws.cell(row=row_idx, column=headers["Risk Level"])
                         risk_value = str(risk_cell.value).upper() if risk_cell.value else ""
@@ -5206,12 +5617,15 @@ class PyADRecon:
                             risk_cell.fill = red_fill
                         elif risk_value == "MEDIUM":
                             risk_cell.fill = orange_fill
+                        # Low risk remains uncolored (not a problem, just normal/expected)
                     
+                    # Highlight Does Not Require Pre Auth (always RED - critical vulnerability)
                     if "Does Not Require Pre Auth" in headers:
                         preauth_cell = ws.cell(row=row_idx, column=headers["Does Not Require Pre Auth"])
                         if preauth_cell.value in [True, "TRUE", "Yes", "YES"]:
                             preauth_cell.fill = red_fill
                     
+                    # Highlight AdminCount (ORANGE - privileged account)
                     if "AdminCount" in headers:
                         admin_cell = ws.cell(row=row_idx, column=headers["AdminCount"])
                         if admin_cell.value in [1, "1", True, "TRUE"]:
@@ -5220,10 +5634,12 @@ class PyADRecon:
         # Format Kerberoastable sheet
         if "Kerberoastable" in wb.sheetnames:
             ws = wb["Kerberoastable"]
-            if ws.max_row > 1:
+            if ws.max_row > 1:  # Has data beyond header
                 headers = {cell.value: cell.column for cell in ws[1]}
                 
+                # Apply formatting to data rows (skip header)
                 for row_idx in range(2, ws.max_row + 1):
+                    # Highlight Risk Level column
                     if "Risk Level" in headers:
                         risk_cell = ws.cell(row=row_idx, column=headers["Risk Level"])
                         risk_value = str(risk_cell.value).upper() if risk_cell.value else ""
@@ -5232,16 +5648,25 @@ class PyADRecon:
                             risk_cell.fill = red_fill
                         elif risk_value == "MEDIUM":
                             risk_cell.fill = orange_fill
+                        # Low risk remains uncolored (not a problem, just normal/expected)
                     
-                    if "Kerberos RC4" in headers:
-                        rc4_cell = ws.cell(row=row_idx, column=headers["Kerberos RC4"])
-                        if rc4_cell.value in ["Supported", "Default", "SUPPORTED", "DEFAULT"]:
+                    # Highlight Supports RC4 (ORANGE - weak encryption, easier to crack)
+                    if "Supports RC4" in headers:
+                        rc4_cell = ws.cell(row=row_idx, column=headers["Supports RC4"])
+                        if rc4_cell.value in [True, "TRUE", "Yes", "YES"]:
                             rc4_cell.fill = orange_fill
                     
+                    # Highlight AdminCount (ORANGE - privileged account)
                     if "AdminCount" in headers:
                         admin_cell = ws.cell(row=row_idx, column=headers["AdminCount"])
                         if admin_cell.value in [1, "1", True, "TRUE"]:
                             admin_cell.fill = orange_fill
+                    
+                    # Highlight Password Never Expires (RED - critical, allows unlimited cracking time)
+                    if "Password Never Expires" in headers:
+                        pwd_cell = ws.cell(row=row_idx, column=headers["Password Never Expires"])
+                        if pwd_cell.value in [True, "TRUE", "Yes", "YES"]:
+                            pwd_cell.fill = red_fill
 
     def apply_striped_formatting(self, wb):
         """Apply striped row formatting (alternating light gray) to all data sheets.
@@ -5250,6 +5675,18 @@ class PyADRecon:
         from openpyxl.styles import PatternFill
         
         stripe_fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
+        
+        # RGB values of security colors to preserve (with 00 prefix that openpyxl adds)
+        security_colors = {
+            "00FFB3BA",  # Red
+            "FFB3BA",    # Red (without prefix)
+            "00FFD9B3",  # Orange
+            "FFD9B3",    # Orange (without prefix)
+            "00FFFFB3",  # Yellow
+            "FFFFB3",    # Yellow (without prefix)
+            "00E0E0E0",  # Gray (disabled accounts)
+            "E0E0E0",    # Gray (without prefix)
+        }
         
         logger.info("    Applying striped row formatting...")
         
@@ -5267,7 +5704,10 @@ class PyADRecon:
                 if row_idx % 2 == 0:
                     for col_idx in range(1, ws.max_column + 1):
                         cell = ws.cell(row=row_idx, column=col_idx)
-                        if not cell.fill or cell.fill.start_color.rgb in ['00000000', None]:
+                        # Only apply striping if cell has no fill or has default fill
+                        # Skip cells with security colors
+                        cell_rgb = cell.fill.start_color.rgb if cell.fill and hasattr(cell.fill.start_color, 'rgb') else None
+                        if cell_rgb is None or cell_rgb == '00000000' or cell_rgb not in security_colors:
                             cell.fill = stripe_fill
 
     def export_xlsx(self, output_dir: str, domain_name: str = ""):
@@ -5642,11 +6082,14 @@ class PyADRecon:
                         ws.column_dimensions[column_letter].width = adjusted_width
             
             # Apply security-based conditional formatting
+            logger.info("    Applying security formatting...")
             self.apply_security_formatting(wb)
             
             # Apply striped row formatting
             self.apply_striped_formatting(wb)
             
+            # Save final formatted workbook
+            logger.info("    Saving formatted Excel file...")
             wb.save(filename)
             wb.close()
 
