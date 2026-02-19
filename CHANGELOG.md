@@ -1,3 +1,10 @@
+## [0.3.3](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.2...v0.3.3) (2026-02-19)
+
+
+### Bug Fixes
+
+* cell coloring; remove requirement for dns lookups and just lookup dumped dns records ([46d3d2a](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/46d3d2afc2b3980df396d5bccc1f5114b9033a61))
+
 ## [0.3.2](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.1...v0.3.2) (2026-02-19)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * register missing collection methods and fix parsing ([2a02d60](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/2a02d605c020475be59126e9ef768cf2b070338a))
-
-## [0.2.2](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.2.1...v0.2.2) (2026-02-18)
-
-
-### Bug Fixes
-
-* naming scheme ([c8b7e8d](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/c8b7e8d4af98f9673dc696769c6466426ace0a63))
 
