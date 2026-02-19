@@ -216,7 +216,16 @@ class ADWSConnection:
             rootdse = self._adws_client.get_rootdse_contexts(self.server.host, self._adws_client._nmf)
             self._root_dn = rootdse.get('defaultNamingContext') or rootdse.get('rootDomainNamingContext')
             if self._root_dn:
+                # Store all naming contexts from RootDSE for proper forest queries
                 self.server.info.other['defaultNamingContext'] = [self._root_dn]
+
+                # Store other naming contexts if available (critical for child domains)
+                if rootdse.get('configurationNamingContext'):
+                    self.server.info.other['configurationNamingContext'] = [rootdse['configurationNamingContext']]
+                if rootdse.get('schemaNamingContext'):
+                    self.server.info.other['schemaNamingContext'] = [rootdse['schemaNamingContext']]
+                if rootdse.get('rootDomainNamingContext'):
+                    self.server.info.other['rootDomainNamingContext'] = [rootdse['rootDomainNamingContext']]
             
             self._bound = True
             return True
