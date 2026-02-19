@@ -81,7 +81,7 @@ Examples:
   # Basic usage with NTLM authentication
   pyadrecon_adws.py -dc 192.168.1.1 -u admin -p password123 -d DOMAIN.LOCAL
 
-  # With Kerberos authentication (only works on Linux atm)
+  # With Kerberos authentication (only works on Linux with gssapi atm)
   pyadrecon.py -dc dc01.domain.local -u admin -p password123 -d DOMAIN.LOCAL --auth kerberos
 
   # Only collect specific modules
