@@ -1,3 +1,10 @@
+## [0.3.9](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.8...v0.3.9) (2026-02-19)
+
+
+### Bug Fixes
+
+* columns coloring for user and computer stats tab ([c7b8b02](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/c7b8b0209722614685e5c4326a7d5c6d7328ec6d))
+
 ## [0.3.8](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.7...v0.3.8) (2026-02-19)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * make --page-size and -v working ([e4bb00d](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/e4bb00d348f82b3685c11c90ab5bfaedf0452e3b))
-
-## [0.3.4](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.3...v0.3.4) (2026-02-19)
-
-
-### Bug Fixes
-
-* adcs ca parsing ([bde2e18](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/bde2e18b938e7be809ef4183294e0a025d2e1e26))
 
