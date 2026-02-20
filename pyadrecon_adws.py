@@ -1562,6 +1562,49 @@ class PyADRecon:
         
         return principal_lower in low_priv_names
 
+    def _initialize_sid_mappings(self):
+        """Initialize SID to domain name mappings for cross-domain SID resolution.
+        This runs silently before collections to populate domain_sid_to_name cache.
+        """
+        try:
+            # Get current domain SID and name
+            entries = self.search(
+                search_base=self.base_dn,
+                search_filter='(objectCategory=domainDNS)',
+                attributes=['objectSid']
+            )
+            
+            if entries:
+                sid_bytes = get_attr(entries[0], 'objectSid')
+                if sid_bytes:
+                    self.domain_sid = sid_to_str(sid_bytes)
+                    domain_name = dn_to_fqdn(self.base_dn)
+                    self.domain_sid_to_name[self.domain_sid] = domain_name
+                    logger.debug(f"Initialized current domain SID: {self.domain_sid} -> {domain_name}")
+            
+            # Get trusted domain SIDs and names
+            trust_entries = self.search(
+                search_base=self.base_dn,
+                search_filter='(objectCategory=trustedDomain)',
+                attributes=['trustPartner', 'securityIdentifier']
+            )
+            
+            for entry in trust_entries:
+                trusted_domain_sid_bytes = get_attr(entry, 'securityIdentifier')
+                trusted_domain_name = get_attr(entry, 'trustPartner', '')
+                
+                if trusted_domain_sid_bytes and trusted_domain_name:
+                    try:
+                        trusted_domain_sid = sid_to_str(trusted_domain_sid_bytes)
+                        self.domain_sid_to_name[trusted_domain_sid] = trusted_domain_name
+                        logger.debug(f"Initialized trusted domain SID: {trusted_domain_sid} -> {trusted_domain_name}")
+                    except Exception:
+                        pass
+                        
+        except Exception as e:
+            logger.debug(f"Error initializing SID mappings: {e}")
+            # Non-fatal - continue even if this fails
+
     def collect_domain_info(self) -> List[Dict]:
         """Collect domain information."""
         logger.info("[-] Collecting Domain Information...")
@@ -5003,6 +5046,10 @@ class PyADRecon:
             # Connect
             if not self.connect():
                 return False
+
+            # Initialize SID mappings for cross-domain resolution
+            # This ensures SID-to-domain-name mapping works even with --collect flags
+            self._initialize_sid_mappings()
 
             # Collect about info first
             self.results['AboutPyADRecon'] = self.collect_about()
