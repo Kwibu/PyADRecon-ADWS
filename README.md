@@ -68,7 +68,7 @@ options:
                         Comma-separated modules to collect (default: all)
   --only-enabled        Only collect enabled users/computers
   --page-size PAGE_SIZE
-                        ADWS query page size (default: 1000)
+                        ADWS query page size (default: 256)
   --dormant-days DORMANT_DAYS
                         Users/Computers with lastLogon older than X days are dormant (default: 90)
   --password-age PASSWORD_AGE

@@ -343,6 +343,44 @@ class ADWSConnect:
                 detail_node = detail_node_s if detail_node_s is not None else detail_node_soapenv
                 detail_text = ElementTree.tostring(detail_node, encoding='unicode').strip() if detail_node is not None else "No detail"
 
+                # Check for AD referral errors (Win32ErrorCode 8235)
+                win32_error_code = None
+                referral_url = None
+                if detail_node is not None:
+                    # Try to find Win32ErrorCode in the detail
+                    ad_ns = "http://schemas.microsoft.com/2008/1/ActiveDirectory"
+                    win32_code_elem = detail_node.find(f".//{{{ad_ns}}}Win32ErrorCode")
+                    if win32_code_elem is not None and win32_code_elem.text:
+                        try:
+                            win32_error_code = int(win32_code_elem.text)
+                        except ValueError:
+                            pass
+                    
+                    # Try to extract referral URL
+                    referral_elem = detail_node.find(f".//{{{ad_ns}}}Referral")
+                    if referral_elem is not None and referral_elem.text:
+                        referral_url = referral_elem.text
+                
+                # ERROR_DS_REFERRAL = 8235 - This happens in child domains when querying
+                # forest-level objects like Enterprise Admins or Schema Admins
+                if win32_error_code == 8235:
+                    if referral_url:
+                        logging.warning(f"AD Referral encountered: {referral_url}")
+                        logging.debug(f"Skipping referral and continuing enumeration...")
+                    else:
+                        logging.warning(f"AD Referral encountered (Win32ErrorCode: 8235)")
+                    # Return an empty response to continue enumeration instead of aborting
+                    # Construct a minimal valid response structure
+                    s_ns = NAMESPACES['s']
+                    wsen_ns = NAMESPACES['wsen']
+                    root = ElementTree.Element(f"{{{s_ns}}}Envelope")
+                    body = ElementTree.SubElement(root, f"{{{s_ns}}}Body")
+                    pull_response = ElementTree.SubElement(body, f"{{{wsen_ns}}}PullResponse")
+                    items = ElementTree.SubElement(pull_response, f"{{{wsen_ns}}}Items")
+                    # Add EndOfSequence to signal no more results for this referral
+                    ElementTree.SubElement(pull_response, f"{{{wsen_ns}}}EndOfSequence")
+                    return root
+                
                 logging.error(f"SOAP Fault received: {reason}\nDetail: {detail_text}")
                 return None
 

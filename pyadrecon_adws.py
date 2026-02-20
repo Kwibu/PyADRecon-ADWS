@@ -703,7 +703,7 @@ class ADReconConfig:
     password: str = ""
     auth_method: str = "NTLM"  # NTLM only for ADWS
     port: int = 9389  # ADWS default port
-    page_size: int = 1000
+    page_size: int = 256
     dormant_days: int = 90
     password_age_days: int = 180
     only_enabled: bool = False
@@ -6815,8 +6815,8 @@ Examples:
                         help='Only collect enabled users/computers')
 
     # Threshold options
-    parser.add_argument('--page-size', type=int, default=1000,
-                        help='ADWS query page size (default: 1000)')
+    parser.add_argument('--page-size', type=int, default=256,
+                        help='ADWS query page size (default: 256)')
     parser.add_argument('--dormant-days', type=int, default=90,
                         help='Users/Computers with lastLogon older than X days are dormant (default: 90)')
     parser.add_argument('--password-age', type=int, default=180,
