@@ -1,3 +1,10 @@
+## [0.3.10](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.9...v0.3.10) (2026-02-20)
+
+
+### Bug Fixes
+
+* properly catch referrals to parent ([3626f24](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/3626f2410301216b6969e724d8119e158ce372ff))
+
 ## [0.3.9](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.8...v0.3.9) (2026-02-19)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * adjust ace parsing for adcs and fix esc4 detection ([56b91d1](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/56b91d19b2534553b8d1cf672d6a037db780b9b6))
-
-## [0.3.5](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.4...v0.3.5) (2026-02-19)
-
-
-### Bug Fixes
-
-* make --page-size and -v working ([e4bb00d](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/e4bb00d348f82b3685c11c90ab5bfaedf0452e3b))
 
