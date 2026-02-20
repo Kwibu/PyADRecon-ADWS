@@ -1,3 +1,10 @@
+## [0.3.11](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.10...v0.3.11) (2026-02-20)
+
+
+### Bug Fixes
+
+* properly traverse sids and display child/parent domain names for adcs certificate templates ([3e8b113](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/3e8b113832ab66e3139a081344fdad0dd38af59d))
+
 ## [0.3.10](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.9...v0.3.10) (2026-02-20)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * forest support for child domain environments ([1deacd3](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/1deacd355dc4ce58e336a3b72ba758209e24297d))
-
-## [0.3.6](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.5...v0.3.6) (2026-02-19)
-
-
-### Bug Fixes
-
-* adjust ace parsing for adcs and fix esc4 detection ([56b91d1](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/56b91d19b2534553b8d1cf672d6a037db780b9b6))
 
