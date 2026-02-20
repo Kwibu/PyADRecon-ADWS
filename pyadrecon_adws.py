@@ -294,8 +294,14 @@ def dn_to_fqdn(dn: str) -> str:
 
 
 def sid_to_str(sid_bytes: bytes) -> str:
-    """Convert binary SID to string format."""
+    """Convert binary SID to string format.
+    Handles both raw bytes and base64-encoded strings."""
     try:
+        # Handle base64-encoded strings
+        if isinstance(sid_bytes, str):
+            import base64
+            sid_bytes = base64.b64decode(sid_bytes)
+        
         if IMPACKET_AVAILABLE:
             return ldaptypes.LDAP_SID(sid_bytes).formatCanonical()
         # Fallback manual parsing
@@ -758,6 +764,7 @@ class PyADRecon:
         self.results: Dict[str, List] = {}
         self.start_time: datetime = datetime.now()
         self._sid_cache: Dict[str, str] = {}  # Cache for SID-to-name resolution
+        self.domain_sid_to_name: Dict[str, str] = {}  # Mapping of domain SIDs to domain names from trusts
 
     def connect(self) -> bool:
         """Establish ADWS connection."""
@@ -941,8 +948,9 @@ class PyADRecon:
                     current_domain = self.domain_sid if hasattr(self, 'domain_sid') and self.domain_sid else None
                     
                     if current_domain and sid_domain != current_domain:
-                        # Cross-domain SID - mark it as from another domain
-                        result = f"[Foreign Domain] {well_known_rids[rid]}"
+                        # Cross-domain SID - try to resolve the domain name
+                        domain_name = self.domain_sid_to_name.get(sid_domain, "Foreign Domain")
+                        result = f"[{domain_name}] {well_known_rids[rid]}"
                     else:
                         result = well_known_rids[rid]
                     
@@ -1007,6 +1015,21 @@ class PyADRecon:
                     return result
             except Exception as e:
                 logger.debug(f"Could not resolve SID {sid} in forest root: {e}")
+        
+        # Before returning just the SID, check if it belongs to a known domain
+        if sid.startswith('S-1-5-21-'):
+            parts = sid.split('-')
+            if len(parts) >= 8:
+                # Extract domain SID (everything except the RID)
+                sid_domain = '-'.join(parts[:7])
+                # Check if this domain is in our mapping
+                domain_name = self.domain_sid_to_name.get(sid_domain)
+                if domain_name:
+                    # Extract the RID for display
+                    rid = parts[-1]
+                    result = f"[{domain_name} SID] {sid} (RID: {rid})"
+                    self._sid_cache[sid] = result
+                    return result
         
         # Return SID if resolution failed
         result = f"[SID] {sid}"
@@ -1409,13 +1432,16 @@ class PyADRecon:
                 return (enrollment_principals, auto_enrollment_principals, owner_principal)
             
             # Parse each ACE in the DACL
+            logger.debug(f"Parsing {len(sd['Dacl'].aces)} ACEs from security descriptor")
             for ace in sd['Dacl'].aces:
                 try:
                     # Get SID from ACE
                     sid = ace['Ace']['Sid'].formatCanonical()
+                    logger.debug(f"Processing ACE with SID: {sid}")
                     
                     # Resolve SID to name
                     principal_name = self._resolve_sid_to_name(sid)
+                    logger.debug(f"  Resolved to: {principal_name}")
                     
                     # Check if this is an ACCESS_ALLOWED_OBJECT_ACE
                     ace_type = ace['AceType']
@@ -1478,6 +1504,9 @@ class PyADRecon:
             logger.debug(f"Error parsing security descriptor: {e}")
             import traceback
             logger.debug(traceback.format_exc())
+        
+        logger.debug(f"Found {len(enrollment_principals)} enrollment principals: {enrollment_principals}")
+        logger.debug(f"Found {len(auto_enrollment_principals)} auto-enrollment principals: {auto_enrollment_principals}")
             
         return (enrollment_principals, auto_enrollment_principals, owner_principal)
 
@@ -1557,8 +1586,12 @@ class PyADRecon:
                 # Get domain SID
                 sid_bytes = get_attr(entry, 'objectSid')
                 self.domain_sid = sid_to_str(sid_bytes)
+                
+                # Map current domain SID to its name for cross-domain resolution
+                domain_name = dn_to_fqdn(self.base_dn)
+                self.domain_sid_to_name[self.domain_sid] = domain_name
 
-                results.append({"Category": "Name", "Value": dn_to_fqdn(self.base_dn)})
+                results.append({"Category": "Name", "Value": domain_name})
                 results.append({"Category": "NetBIOS", "Value": get_attr(entry, 'name', '')})
                 results.append({"Category": "Functional Level", "Value": f"{func_level}Domain"})
                 results.append({"Category": "DomainSID", "Value": self.domain_sid})
@@ -3347,10 +3380,24 @@ class PyADRecon:
                 search_base=self.base_dn,
                 search_filter='(objectCategory=trustedDomain)',
                 attributes=['distinguishedName', 'trustPartner', 'trustDirection', 'trustType',
-                           'trustAttributes', 'whenCreated', 'whenChanged']
+                           'trustAttributes', 'whenCreated', 'whenChanged', 'securityIdentifier']
             )
 
             for entry in entries:
+                
+                # Get the trusted domain's SID and build mapping
+                trusted_domain_sid_bytes = get_attr(entry, 'securityIdentifier')
+                trusted_domain_name = get_attr(entry, 'trustPartner', '')
+                
+                if trusted_domain_sid_bytes and trusted_domain_name:
+                    try:
+                        # Convert SID to string format (handles both bytes and base64 strings)
+                        trusted_domain_sid = sid_to_str(trusted_domain_sid_bytes)
+                        # Store mapping for SID resolution
+                        self.domain_sid_to_name[trusted_domain_sid] = trusted_domain_name
+                        logger.debug(f"Mapped trusted domain SID {trusted_domain_sid} to {trusted_domain_name}")
+                    except Exception as e:
+                        logger.debug(f"Failed to map trusted domain SID: {e}")
                 
                 trust_dir = get_attr(entry, 'trustDirection', 0)
                 trust_type = get_attr(entry, 'trustType', 0)
@@ -4196,6 +4243,13 @@ class PyADRecon:
     def collect_certificate_templates(self) -> List[Dict]:
         """Collect AD Certificate Services certificate templates."""
         logger.info("[-] Collecting ADCS Certificate Templates...")
+        
+        # Warn if querying from child domain - ACLs may be incomplete
+        if hasattr(self, 'forest_root_dn') and self.forest_root_dn != self.base_dn:
+            logger.warning("[!] Connected to child domain - certificate template ACLs may be incomplete!")
+            logger.warning("    For complete ACL data, connect to forest root DC instead.")
+            logger.warning(f"    Forest root: {dn_to_fqdn(self.forest_root_dn)}")
+        
         results = []
 
         try:
