@@ -1,9 +1,9 @@
 # PyADRecon-ADWS on Windows
 
-A guide for running **PyADRecon-ADWS** on Windows systems using either the pre-built executable or Python.
+A guide for running **PyADRecon-ADWS** on Windows systems using either an executable or Python.
 
 >[!CAUTION]
->PyADRecon-ADWS.py as well as the standalone executable may be flagged by AV/EDR software.
+>PyADRecon-ADWS.py as well as a standalone executable may be flagged by AV/EDR software.
 
 ---
 
@@ -45,7 +45,7 @@ The following ports must be accessible on the Domain Controller:
 
 ## Quick Start
 
-### Using the pre-built executable
+### Using the executable
 
 #### NTLM Authentication
 ```powershell
@@ -96,14 +96,6 @@ klist
 ---
 
 ## Installation Methods
-
-### Using Pre-built Executable
-
-No installation required. Simply download and run `pyadrecon_adws.exe`.
-
-See [Quick Start](#quick-start) for usage examples.
-
----
 
 ### Running with Python
 
