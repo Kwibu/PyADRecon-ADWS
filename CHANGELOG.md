@@ -1,3 +1,10 @@
+## [0.3.12](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.11...v0.3.12) (2026-02-20)
+
+
+### Bug Fixes
+
+* initialize sid mappings earlier to support individual --collect adcs runs ([e2ce483](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/e2ce483ca44ad805bd1749808f3cc11ee958d5ce))
+
 ## [0.3.11](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.10...v0.3.11) (2026-02-20)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * support forest-child enumerations with proper sid resolving ([15aff39](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/15aff39c015a5d017e8c6c9cb7a3dd4763af6d0b))
-
-## [0.3.7](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.6...v0.3.7) (2026-02-19)
-
-
-### Bug Fixes
-
-* forest support for child domain environments ([1deacd3](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/1deacd355dc4ce58e336a3b72ba758209e24297d))
 
