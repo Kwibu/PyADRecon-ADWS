@@ -211,8 +211,6 @@ When querying **child domains** in a multi-domain forest, ADWS returns **incompl
 
 </details>
 
----
-
 ### Multi-Domain Forests – LDAP Referrals
 
 <details>
