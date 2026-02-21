@@ -188,9 +188,14 @@ You may disable HTML dashboard generation via `--no-dashboard`.
 
 ## Known Limitations
 
-### Multi-Domain Forests - Certificate Templates
+### Multi-Domain Forests – Certificate Templates
 
-When querying **child domains** in a multi-domain forest, ADWS returns **incomplete security descriptors** for forest-wide objects like certificate templates. 
+<details>
+<summary><strong>Show details</strong></summary>
+
+<br>
+
+When querying **child domains** in a multi-domain forest, ADWS returns **incomplete security descriptors** for forest-wide objects like certificate templates.
 
 **Issue:**
 - Certificate template ACLs (enrollment rights, write permissions) may not show principals from the **child domain itself**
@@ -198,19 +203,28 @@ When querying **child domains** in a multi-domain forest, ADWS returns **incompl
 - This is an ADWS protocol limitation, not a PyADRecon-ADWS bug
 
 **Example:**
-- Querying from child domain (`child.domain.local`): Shows parent domain principals only
+- Querying from child domain (`child.domain.local`): Shows parent domain principals only  
 - Querying from parent domain (`domain.local`): Shows all principals including child domain
 
 **Solution:**
 - For **complete certificate template ACL data**, connect to the **forest root domain controller** instead of a child DC
 
+</details>
+
+---
+
 ### Multi-Domain Forests – LDAP Referrals
+
+<details>
+<summary><strong>Show details</strong></summary>
+
+<br>
 
 When querying a **child domain** in a multi-domain forest, LDAP may return **referrals** for objects that reside in a different naming context (for example, the forest root domain).
 
 **Issue:**
 - Queries for forest-root objects (e.g., *Enterprise Admins*, *Schema Admins*, or root-domain users/groups) may return LDAP referrals
-- PyADRecon does **not** chase LDAP referrals. 
+- PyADRecon does **not** chase LDAP referrals
 - Referred objects are therefore **not collected automatically**
 
 **Solution:**
@@ -218,6 +232,8 @@ When querying a **child domain** in a multi-domain forest, LDAP may return **ref
   - The **child domain**
   - The **forest root domain**
 - Combine results manually if full forest visibility is required
+
+</details>
 
 ## Acknowledgements
 
