@@ -1,3 +1,10 @@
+## [0.4.7](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.6...v0.4.7) (2026-02-21)
+
+
+### Bug Fixes
+
+* add laps readers to table and adjust maq text ([4572632](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/457263232199c1e7fd1c94986b6600fa128438fc))
+
 ## [0.4.6](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.5...v0.4.6) (2026-02-21)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * add krbtgt rotation and protected users group to dashboard ([93d9e4b](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/93d9e4b36c6fb417549e805788db60099735fb09))
-
-## [0.4.2](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.1...v0.4.2) (2026-02-21)
-
-
-### Bug Fixes
-
-* column sorting bug ([158ddfa](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/158ddfafe5f1d9ae8b72bafa6a9b393f9a1d067f))
 
