@@ -1,3 +1,10 @@
+## [0.4.11](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.10...v0.4.11) (2026-02-21)
+
+
+### Bug Fixes
+
+* update footer ([26fae34](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/26fae34a4a0fd921b752210a5879945a9f571569))
+
 ## [0.4.10](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.9...v0.4.10) (2026-02-21)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * add laps readers to table and adjust maq text ([4572632](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/457263232199c1e7fd1c94986b6600fa128438fc))
-
-## [0.4.6](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.5...v0.4.6) (2026-02-21)
-
-
-### Bug Fixes
-
-* hide non-issue tiles and add maq finding ([e7bfff7](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/e7bfff77ea57bf3eb88718189eb94123a25fc346))
 
