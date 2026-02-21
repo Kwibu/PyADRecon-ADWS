@@ -77,7 +77,7 @@ except ImportError:
     DASHBOARD_AVAILABLE = False
 
 # Constants
-VERSION = "v0.4.11"  # Automatically updated by CI/CD pipeline during release
+VERSION = "v0.4.10"  # Automatically updated by CI/CD pipeline during release
 BANNER = f"""
 ╔═══════════════════════════════════════════════════════════════════
 ║  PyADRecon-ADWS {VERSION} - Python AD Reconnaissance Tool (ADWS)
@@ -6938,6 +6938,59 @@ def generate_excel_from_csv(csv_dir: str, output_file: str = None):
         return None
 
 
+def generate_dashboard_from_csv(csv_dir: str, output_file: str = None):
+    """
+    Standalone function to generate HTML dashboard from CSV files.
+    
+    Args:
+        csv_dir: Path to directory containing CSV files
+        output_file: Output HTML file path (optional, defaults to dashboard.html in same directory)
+    
+    Returns:
+        Path to generated dashboard file on success, None on failure
+    """
+    if not DASHBOARD_AVAILABLE:
+        logger.error("[!] Dashboard generator not available (dashboard_generator.py not found)")
+        return None
+    
+    if not os.path.isdir(csv_dir):
+        logger.error(f"[!] CSV directory not found: {csv_dir}")
+        return None
+    
+    logger.info(f"[*] Generating HTML dashboard from CSV files in: {csv_dir}")
+    start_time = datetime.now()
+    
+    try:
+        # Determine output file path
+        if output_file:
+            if os.path.isdir(output_file):
+                dashboard_file = os.path.join(output_file, 'dashboard.html')
+            else:
+                dashboard_file = output_file
+        else:
+            # Default to dashboard.html in the CSV directory's parent
+            parent_dir = os.path.dirname(csv_dir) if os.path.dirname(csv_dir) else csv_dir
+            dashboard_file = os.path.join(parent_dir, 'dashboard.html')
+        
+        # Generate the dashboard
+        result = generate_dashboard(csv_dir, dashboard_file)
+        
+        if result:
+            duration = datetime.now() - start_time
+            logger.info(f"[+] Dashboard saved to: {os.path.abspath(dashboard_file)}")
+            logger.info(f"[+] Total time: {duration}")
+            return os.path.abspath(dashboard_file)
+        else:
+            logger.error("[!] Dashboard generation failed")
+            return None
+            
+    except Exception as e:
+        logger.error(f"[!] Failed to generate dashboard: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
@@ -6959,15 +7012,20 @@ Examples:
 
   # Generate Excel report from existing CSV files (standalone mode)
   %(prog)s --generate-excel-from /path/to/CSV-Files -o report.xlsx
+
+  # Generate HTML dashboard from existing CSV files (standalone mode)
+  %(prog)s --generate-dashboard-from /path/to/CSV-Files -o dashboard.html
         """
     )
 
     # Version
     parser.add_argument('--version', action='version', version=f'PyADRecon-ADWS {VERSION}')
 
-    # Standalone Excel generation mode
+    # Standalone generation modes
     parser.add_argument('--generate-excel-from', metavar='CSV_DIR',
                         help='Generate Excel report from existing CSV files (standalone mode)')
+    parser.add_argument('--generate-dashboard-from', metavar='CSV_DIR',
+                        help='Generate HTML dashboard from existing CSV files (standalone mode)')
 
     # Connection parameters
     parser.add_argument('-d', '--domain', help='Domain name (e.g., example.com)')
@@ -7017,6 +7075,21 @@ Examples:
         logger.info(f"[*] Generating Excel report from: {args.generate_excel_from}")
         result = generate_excel_from_csv(args.generate_excel_from, args.output)
         if result:
+            sys.exit(0)
+        else:
+            sys.exit(1)
+    
+    # Standalone Dashboard generation mode
+    if args.generate_dashboard_from:
+        print(BANNER)
+        if not DASHBOARD_AVAILABLE:
+            logger.error("[!] Dashboard generator not available (dashboard_generator.py not found)")
+            sys.exit(1)
+        
+        logger.info(f"[*] Generating HTML dashboard from: {args.generate_dashboard_from}")
+        result = generate_dashboard_from_csv(args.generate_dashboard_from, args.output)
+        if result:
+            logger.info(f"[+] Dashboard generated: {result}")
             sys.exit(0)
         else:
             sys.exit(1)
