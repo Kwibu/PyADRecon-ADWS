@@ -1,3 +1,10 @@
+## [0.4.1](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.0...v0.4.1) (2026-02-21)
+
+
+### Bug Fixes
+
+* --no-dashboard ([3c0768a](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/3c0768a2817c41c7eaa70534a31aa869b049b05a))
+
 ## [0.4.0](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.12...v0.4.0) (2026-02-21)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * properly catch referrals to parent ([3626f24](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/3626f2410301216b6969e724d8119e158ce372ff))
-
-## [0.3.9](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.8...v0.3.9) (2026-02-19)
-
-
-### Bug Fixes
-
-* columns coloring for user and computer stats tab ([c7b8b02](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/c7b8b0209722614685e5c4326a7d5c6d7328ec6d))
 
