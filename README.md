@@ -208,6 +208,14 @@ You may disable HTML dashboard generation via `--no-dashboard`.
 
 <img width="1209" height="500" alt="image" src="https://github.com/user-attachments/assets/e9500806-374d-4c69-a9a8-7f1540779266" />
 
+<details>
+<img width="1318" height="927" alt="image" src="https://github.com/user-attachments/assets/0760056c-963d-48fb-a252-fd082862bb01" />
+
+<img width="1283" height="817" alt="image" src="https://github.com/user-attachments/assets/325197eb-8bd7-4aca-ac4e-c34b85057df1" />
+
+<img width="1253" height="569" alt="image" src="https://github.com/user-attachments/assets/b6c4f94b-9da3-4a55-808d-23036181d02b" />
+</details>
+
 ## Acknowledgements
 
 Many thanks to the following folks:
