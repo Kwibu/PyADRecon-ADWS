@@ -67,7 +67,7 @@ options:
                         Authentication method: ntlm or kerberos (default: ntlm)
   --spn SPN             Service Principal Name override (default: HTTP/dc.fqdn)
   --workstation WORKSTATION
-                        NTLM authentication workstation name (default: random)
+                        NTLM authentication workstation name (default: empty)
   -c, --collect COLLECT
                         Comma-separated modules to collect (default: all)
   --only-enabled        Only collect enabled users/computers
