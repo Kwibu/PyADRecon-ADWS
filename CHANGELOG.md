@@ -1,3 +1,10 @@
+## [0.4.0](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.12...v0.4.0) (2026-02-21)
+
+
+### Features
+
+* html security dashboard generation ([05f72ec](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/05f72ec310f02e122ce7ecbd1118b31fa04eb296))
+
 ## [0.3.12](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.11...v0.3.12) (2026-02-20)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * columns coloring for user and computer stats tab ([c7b8b02](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/c7b8b0209722614685e5c4326a7d5c6d7328ec6d))
-
-## [0.3.8](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.7...v0.3.8) (2026-02-19)
-
-
-### Bug Fixes
-
-* support forest-child enumerations with proper sid resolving ([15aff39](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/15aff39c015a5d017e8c6c9cb7a3dd4763af6d0b))
 
