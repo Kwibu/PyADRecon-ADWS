@@ -53,6 +53,8 @@ options:
   --version             show program's version number and exit
   --generate-excel-from CSV_DIR
                         Generate Excel report from existing CSV files (standalone mode)
+  --generate-dashboard-from CSV_DIR
+                        Generate HTML dashboard from existing CSV files (standalone mode)
   -d, --domain DOMAIN   Domain name (e.g., example.com)
   -u, --username USERNAME
                         Username (DOMAIN\user or user@domain.com)
