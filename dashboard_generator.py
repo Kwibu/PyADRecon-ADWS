@@ -2122,6 +2122,8 @@ class DashboardGenerator:
                     if (this.usersWithPasswordsInInfo.length > 0) count++; // Passwords in user info
                     if (this.lapsReadable.length > 0) count++; // LAPS Readable
                     if (this.passwordPolicy.length > 0) count++; // Password Policy
+                    if (this.krbtgtOldPassword.length > 0) count++; // KRBTGT password rotation
+                    if (this.unprotectedPrivilegedUsers.length > 0) count++; // Protected Users group
                     return count;
                 }},
                 
