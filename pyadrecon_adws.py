@@ -7040,7 +7040,7 @@ Examples:
     parser.add_argument('--spn', type=str, default=None,
                         help='Service Principal Name override (default: HTTP/dc.fqdn)')
     parser.add_argument('--workstation', default='',
-                        help='NTLM authentication workstation name (default: random)')
+                        help='NTLM authentication workstation name (default: empty)')
 
     # Collection options  
     parser.add_argument('-c', '--collect', default='default',
