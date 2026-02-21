@@ -1,3 +1,10 @@
+## [0.4.10](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.9...v0.4.10) (2026-02-21)
+
+
+### Bug Fixes
+
+* make dashboard more mobile friendly ([0233fc9](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/0233fc98f96b0534ba75aae86e970e1c646e9321))
+
 ## [0.4.9](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.8...v0.4.9) (2026-02-21)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * hide non-issue tiles and add maq finding ([e7bfff7](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/e7bfff77ea57bf3eb88718189eb94123a25fc346))
-
-## [0.4.5](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.4...v0.4.5) (2026-02-21)
-
-
-### Bug Fixes
-
-* counter for security findings in navigation ([f762720](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/f762720bb1d8d1bd63e69aab2b4c71c43b22e64b))
 
