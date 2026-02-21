@@ -1090,6 +1090,16 @@ class DashboardGenerator:
                                         <i v-if="cleartextSortColumn === 'Name'" :class="cleartextSortDirection === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'" class="ml-1"></i>
                                         <i v-else class="fas fa-sort ml-1 opacity-30"></i>
                                     </th>
+                                    <th @click="sortCleartext('Description')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
+                                        Description
+                                        <i v-if="cleartextSortColumn === 'Description'" :class="cleartextSortDirection === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'" class="ml-1"></i>
+                                        <i v-else class="fas fa-sort ml-1 opacity-30"></i>
+                                    </th>
+                                    <th @click="sortCleartext('Info')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
+                                        Info
+                                        <i v-if="cleartextSortColumn === 'Info'" :class="cleartextSortDirection === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'" class="ml-1"></i>
+                                        <i v-else class="fas fa-sort ml-1 opacity-30"></i>
+                                    </th>
                                     <th @click="sortCleartext('AdminCount')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
                                         Admin
                                         <i v-if="cleartextSortColumn === 'AdminCount'" :class="cleartextSortDirection === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down'" class="ml-1"></i>
@@ -1101,6 +1111,14 @@ class DashboardGenerator:
                                 <tr v-for="user in usersWithPasswordsInInfo.slice(0, 50)" :key="user.UserName">
                                     <td class="px-6 py-4 whitespace-nowrap font-medium">{{{{ user.UserName }}}}</td>
                                     <td class="px-6 py-4">{{{{ user.Name }}}}</td>
+                                    <td class="px-6 py-4 text-sm">
+                                        <span v-if="user.Description" class="text-red-600 dark:text-red-400 font-mono break-all">{{{{ user.Description }}}}</span>
+                                        <span v-else class="text-gray-400">-</span>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm">
+                                        <span v-if="user.Info" class="text-red-600 dark:text-red-400 font-mono break-all">{{{{ user.Info }}}}</span>
+                                        <span v-else class="text-gray-400">-</span>
+                                    </td>
                                     <td class="px-6 py-4">
                                         <span v-if="user.AdminCount === '1'" class="badge badge-critical">Admin</span>
                                         <span v-else class="text-gray-500">-</span>
