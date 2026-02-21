@@ -1,3 +1,10 @@
+## [0.4.3](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.2...v0.4.3) (2026-02-21)
+
+
+### Bug Fixes
+
+* add krbtgt rotation and protected users group to dashboard ([93d9e4b](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/93d9e4b36c6fb417549e805788db60099735fb09))
+
 ## [0.4.2](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.1...v0.4.2) (2026-02-21)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * initialize sid mappings earlier to support individual --collect adcs runs ([e2ce483](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/e2ce483ca44ad805bd1749808f3cc11ee958d5ce))
-
-## [0.3.11](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.10...v0.3.11) (2026-02-20)
-
-
-### Bug Fixes
-
-* properly traverse sids and display child/parent domain names for adcs certificate templates ([3e8b113](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/3e8b113832ab66e3139a081344fdad0dd38af59d))
 
