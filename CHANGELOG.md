@@ -1,3 +1,10 @@
+## [0.4.6](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.5...v0.4.6) (2026-02-21)
+
+
+### Bug Fixes
+
+* hide non-issue tiles and add maq finding ([e7bfff7](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/e7bfff77ea57bf3eb88718189eb94123a25fc346))
+
 ## [0.4.5](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.4...v0.4.5) (2026-02-21)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * column sorting bug ([158ddfa](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/158ddfafe5f1d9ae8b72bafa6a9b393f9a1d067f))
-
-## [0.4.1](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.0...v0.4.1) (2026-02-21)
-
-
-### Bug Fixes
-
-* --no-dashboard ([3c0768a](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/3c0768a2817c41c7eaa70534a31aa869b049b05a))
 
