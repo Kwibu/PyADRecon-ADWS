@@ -1,3 +1,10 @@
+## [0.4.5](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.4...v0.4.5) (2026-02-21)
+
+
+### Bug Fixes
+
+* counter for security findings in navigation ([f762720](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/f762720bb1d8d1bd63e69aab2b4c71c43b22e64b))
+
 ## [0.4.4](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.3...v0.4.4) (2026-02-21)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * --no-dashboard ([3c0768a](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/3c0768a2817c41c7eaa70534a31aa869b049b05a))
-
-## [0.4.0](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.12...v0.4.0) (2026-02-21)
-
-
-### Features
-
-* html security dashboard generation ([05f72ec](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/05f72ec310f02e122ce7ecbd1118b31fa04eb296))
 
