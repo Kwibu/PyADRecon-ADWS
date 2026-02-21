@@ -32,7 +32,7 @@ pyadrecon-adws = "pyadrecon_adws:main"
 pyadrecon_adws = "pyadrecon_adws:main"
 
 [tool.setuptools]
-py-modules = ["pyadrecon_adws"]
+py-modules = ["pyadrecon_adws", "dashboard_generator"]
 
 [tool.setuptools.packages.find]
 include = ["helpers*"]

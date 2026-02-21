@@ -58,6 +58,7 @@ COPY --from=builder /install /usr/local
 
 # Copy application
 COPY pyadrecon_adws.py /app/
+COPY dashboard_generator.py /app/
 COPY helpers/ /app/helpers/
 
 WORKDIR /app

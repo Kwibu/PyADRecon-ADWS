@@ -68,6 +68,14 @@ except ImportError:
     OPENPYXL_AVAILABLE = False
     print("[*] openpyxl not available - Excel export disabled")
 
+# Try to import dashboard generator
+DASHBOARD_AVAILABLE = False
+try:
+    from dashboard_generator import generate_dashboard
+    DASHBOARD_AVAILABLE = True
+except ImportError:
+    DASHBOARD_AVAILABLE = False
+
 # Constants
 VERSION = "v0.3.12"  # Automatically updated by CI/CD pipeline during release
 BANNER = f"""
@@ -6926,6 +6934,8 @@ Examples:
     # Output options
     parser.add_argument('-o', '--output', help='Output directory (default: PyADRecon-Report-<timestamp>)')
     parser.add_argument('--no-excel', action='store_true', help='Skip Excel export')
+    parser.add_argument('--no-dashboard', action='store_true',
+                        help='Skip interactive HTML dashboard generation')
     parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output')
 
     args = parser.parse_args()
@@ -7059,6 +7069,16 @@ Examples:
             if not args.no_excel and OPENPYXL_AVAILABLE:
                 domain_name = config.domain.replace('.', '_')
                 recon.export_xlsx(output_dir, domain_name)
+
+            # Generate interactive dashboard if requested
+            if 'default' in collect_modules or 'all' in collect_modules or not collect_modules:
+                if DASHBOARD_AVAILABLE:
+                    logger.info("[*] Generating interactive HTML dashboard...")
+                    dashboard_file = os.path.join(output_dir, 'dashboard.html')
+                    if generate_dashboard(csv_dir, dashboard_file):
+                        logger.info(f"[+] Dashboard: {os.path.abspath(dashboard_file)}")
+                else:
+                    logger.warning("[!] Dashboard generation not available (dashboard_generator.py not found)")
 
             logger.info(f"[*] Output Directory: {os.path.abspath(output_dir)}")
             logger.info("[*] Completed.")
