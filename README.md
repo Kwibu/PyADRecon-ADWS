@@ -204,6 +204,21 @@ When querying **child domains** in a multi-domain forest, ADWS returns **incompl
 **Solution:**
 - For **complete certificate template ACL data**, connect to the **forest root domain controller** instead of a child DC
 
+### Multi-Domain Forests – LDAP Referrals
+
+When querying a **child domain** in a multi-domain forest, LDAP may return **referrals** for objects that reside in a different naming context (for example, the forest root domain).
+
+**Issue:**
+- Queries for forest-root objects (e.g., *Enterprise Admins*, *Schema Admins*, or root-domain users/groups) may return LDAP referrals
+- PyADRecon does **not** chase LDAP referrals. 
+- Referred objects are therefore **not collected automatically**
+
+**Solution:**
+- To ensure complete forest-wide enumeration, run PyADRecon separately against:
+  - The **child domain**
+  - The **forest root domain**
+- Combine results manually if full forest visibility is required
+
 ## Acknowledgements
 
 Many thanks to the following folks:
