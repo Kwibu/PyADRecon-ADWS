@@ -219,7 +219,7 @@ When querying **child domains** in a multi-domain forest, ADWS returns **incompl
 
 <br>
 
-When querying a **child domain** in a multi-domain forest, LDAP may return **referrals** for objects that reside in a different naming context (for example, the forest root domain).
+When querying a **child domain** in a multi-domain forest, ADWS may return LDAP **referrals** for objects that reside in a different naming context (for example, the forest root domain).
 
 **Issue:**
 - Queries for forest-root objects (e.g., *Enterprise Admins*, *Schema Admins*, or root-domain users/groups) may return LDAP referrals
