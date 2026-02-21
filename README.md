@@ -188,8 +188,7 @@ You may disable HTML dashboard generation via `--no-dashboard`.
 
 ## Known Limitations
 
-### Multi-Domain Forests – Certificate Templates
-
+### Multi-Domain Forests – Security Descriptors
 <details>
 <summary><strong>Show details</strong></summary>
 
