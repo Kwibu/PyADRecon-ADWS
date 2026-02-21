@@ -1,3 +1,10 @@
+## [0.4.8](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.7...v0.4.8) (2026-02-21)
+
+
+### Bug Fixes
+
+* refactor ESC2, ESC3, ESC4 detection; add manager approval to dashboard ([9f2a78b](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/9f2a78b513d0b4c5edb97037fbff9e5e2cd0905f))
+
 ## [0.4.7](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.6...v0.4.7) (2026-02-21)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * show detected cleartext pws in description/info fields ([bcdfc22](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/bcdfc223e00bd696b3145c1c146967eb48ebb629))
-
-## [0.4.3](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.2...v0.4.3) (2026-02-21)
-
-
-### Bug Fixes
-
-* add krbtgt rotation and protected users group to dashboard ([93d9e4b](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/93d9e4b36c6fb417549e805788db60099735fb09))
 
