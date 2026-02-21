@@ -7071,14 +7071,15 @@ Examples:
                 recon.export_xlsx(output_dir, domain_name)
 
             # Generate interactive dashboard if requested
-            if 'default' in collect_modules or 'all' in collect_modules or not collect_modules:
-                if DASHBOARD_AVAILABLE:
-                    logger.info("[*] Generating interactive HTML dashboard...")
-                    dashboard_file = os.path.join(output_dir, 'dashboard.html')
-                    if generate_dashboard(csv_dir, dashboard_file):
-                        logger.info(f"[+] Dashboard: {os.path.abspath(dashboard_file)}")
-                else:
-                    logger.warning("[!] Dashboard generation not available (dashboard_generator.py not found)")
+            if not args.no_dashboard:
+                if 'default' in collect_modules or 'all' in collect_modules or not collect_modules:
+                    if DASHBOARD_AVAILABLE:
+                        logger.info("[*] Generating interactive HTML dashboard...")
+                        dashboard_file = os.path.join(output_dir, 'dashboard.html')
+                        if generate_dashboard(csv_dir, dashboard_file):
+                            logger.info(f"[+] Dashboard: {os.path.abspath(dashboard_file)}")
+                    else:
+                        logger.warning("[!] Dashboard generation not available (dashboard_generator.py not found)")
 
             logger.info(f"[*] Output Directory: {os.path.abspath(output_dir)}")
             logger.info("[*] Completed.")
