@@ -1,3 +1,10 @@
+## [0.4.4](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.3...v0.4.4) (2026-02-21)
+
+
+### Bug Fixes
+
+* show detected cleartext pws in description/info fields ([bcdfc22](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/bcdfc223e00bd696b3145c1c146967eb48ebb629))
+
 ## [0.4.3](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.2...v0.4.3) (2026-02-21)
 
 
@@ -25,11 +32,4 @@
 ### Features
 
 * html security dashboard generation ([05f72ec](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/05f72ec310f02e122ce7ecbd1118b31fa04eb296))
-
-## [0.3.12](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.11...v0.3.12) (2026-02-20)
-
-
-### Bug Fixes
-
-* initialize sid mappings earlier to support individual --collect adcs runs ([e2ce483](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/e2ce483ca44ad805bd1749808f3cc11ee958d5ce))
 
