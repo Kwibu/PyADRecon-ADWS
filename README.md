@@ -109,7 +109,7 @@ docker run --rm -v /etc/krb5.conf:/etc/krb5.conf:ro -v /etc/hosts:/etc/hosts:ro 
 
 ### Multi-Domain Forests - Certificate Templates
 
-When querying **child domains** in a multi-domain forest, ADWS returns **incomplete security descriptors** for forest-wide objects like certificate templates. This means:
+When querying **child domains** in a multi-domain forest, ADWS returns **incomplete security descriptors** for forest-wide objects like certificate templates. 
 
 **Issue:**
 - Certificate template ACLs (enrollment rights, write permissions) may not show principals from the **child domain itself**
@@ -117,24 +117,12 @@ When querying **child domains** in a multi-domain forest, ADWS returns **incompl
 - This is an ADWS protocol limitation, not a PyADRecon-ADWS bug
 
 **Example:**
-- Querying from child domain (`deham.domain.local`): Shows parent domain principals only
+- Querying from child domain (`child.domain.local`): Shows parent domain principals only
 - Querying from parent domain (`domain.local`): Shows all principals including child domain
 
 **Solution:**
-- For **complete certificate template ACL data**, connect to the **forest root domain controller** instead of a child DC:
-  ```bash
-  # Instead of connecting to child DC:
-  pyadrecon_adws.py -dc child-dc.deham.domain.local -d deham.domain.local ...
-  
-  # Connect to forest root DC:
-  pyadrecon_adws.py -dc root-dc.domain.local -d domain.local ...
-  ```
+- For **complete certificate template ACL data**, connect to the **forest root domain controller** instead of a child DC
 
-**Warning:** PyADRecon-ADWS will display a warning when collecting certificate templates from a child domain:
-```
-[WARNING] [!] Connected to child domain - certificate template ACLs may be incomplete!
-[WARNING]     For complete ACL data, connect to forest root DC instead.
-```
 
 ## Collection Modules
 
