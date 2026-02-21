@@ -12,9 +12,9 @@ A Python3 implementation of [PyADRecon](https://github.com/l4rm4nd/PyADRecon) us
 - [Installation](#installation)
 - [Usage](#usage)
 - [Docker](#docker)
-- [Known Limitations](#known-limitations)
 - [Collection Modules](#collection-modules)
-- [HTML Dashboard](#html-dashboard) 
+- [HTML Dashboard](#html-dashboard)
+- [Known Limitations](#known-limitations)
 - [Acknowledgements](#acknowledgements)
 - [License](#license)
 
@@ -105,25 +105,6 @@ There is also a Docker image available on GHCR.IO.
 docker run --rm -v /etc/krb5.conf:/etc/krb5.conf:ro -v /etc/hosts:/etc/hosts:ro -v ./:/tmp/pyadrecon_output ghcr.io/l4rm4nd/pyadrecon-adws:latest -dc dc01.domain.local -u admin -p password123 -d DOMAIN.LOCAL -o /tmp/pyadrecon_output
 ````
 
-## Known Limitations
-
-### Multi-Domain Forests - Certificate Templates
-
-When querying **child domains** in a multi-domain forest, ADWS returns **incomplete security descriptors** for forest-wide objects like certificate templates. 
-
-**Issue:**
-- Certificate template ACLs (enrollment rights, write permissions) may not show principals from the **child domain itself**
-- Only parent domain principals will appear in enrollment rights
-- This is an ADWS protocol limitation, not a PyADRecon-ADWS bug
-
-**Example:**
-- Querying from child domain (`child.domain.local`): Shows parent domain principals only
-- Querying from parent domain (`domain.local`): Shows all principals including child domain
-
-**Solution:**
-- For **complete certificate template ACL data**, connect to the **forest root domain controller** instead of a child DC
-
-
 ## Collection Modules
 
 As default, PyADRecon-ADWS runs all collection modules. They are referenced to as `default` or `all`.
@@ -204,6 +185,24 @@ You may disable HTML dashboard generation via `--no-dashboard`.
 
 <img width="1253" height="569" alt="image" src="https://github.com/user-attachments/assets/b6c4f94b-9da3-4a55-808d-23036181d02b" />
 </details>
+
+## Known Limitations
+
+### Multi-Domain Forests - Certificate Templates
+
+When querying **child domains** in a multi-domain forest, ADWS returns **incomplete security descriptors** for forest-wide objects like certificate templates. 
+
+**Issue:**
+- Certificate template ACLs (enrollment rights, write permissions) may not show principals from the **child domain itself**
+- Only parent domain principals will appear in enrollment rights
+- This is an ADWS protocol limitation, not a PyADRecon-ADWS bug
+
+**Example:**
+- Querying from child domain (`child.domain.local`): Shows parent domain principals only
+- Querying from parent domain (`domain.local`): Shows all principals including child domain
+
+**Solution:**
+- For **complete certificate template ACL data**, connect to the **forest root domain controller** instead of a child DC
 
 ## Acknowledgements
 
