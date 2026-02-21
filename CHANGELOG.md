@@ -1,3 +1,10 @@
+## [0.4.2](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.1...v0.4.2) (2026-02-21)
+
+
+### Bug Fixes
+
+* column sorting bug ([158ddfa](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/158ddfafe5f1d9ae8b72bafa6a9b393f9a1d067f))
+
 ## [0.4.1](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.0...v0.4.1) (2026-02-21)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * properly traverse sids and display child/parent domain names for adcs certificate templates ([3e8b113](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/3e8b113832ab66e3139a081344fdad0dd38af59d))
-
-## [0.3.10](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.3.9...v0.3.10) (2026-02-20)
-
-
-### Bug Fixes
-
-* properly catch referrals to parent ([3626f24](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/3626f2410301216b6969e724d8119e158ce372ff))
 
