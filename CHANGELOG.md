@@ -1,3 +1,10 @@
+## [0.4.12](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.11...v0.4.12) (2026-02-21)
+
+
+### Bug Fixes
+
+* add support for --generate-dashboard-from ([7e6eb2b](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/7e6eb2b35dca62a0832a537f394d8dad42ed374f))
+
 ## [0.4.11](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.10...v0.4.11) (2026-02-21)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * refactor ESC2, ESC3, ESC4 detection; add manager approval to dashboard ([9f2a78b](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/9f2a78b513d0b4c5edb97037fbff9e5e2cd0905f))
-
-## [0.4.7](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.6...v0.4.7) (2026-02-21)
-
-
-### Bug Fixes
-
-* add laps readers to table and adjust maq text ([4572632](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/457263232199c1e7fd1c94986b6600fa128438fc))
 
