@@ -1,3 +1,10 @@
+## [0.5.3](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.5.2...v0.5.3) (2026-02-22)
+
+
+### Bug Fixes
+
+* add EOL systemd detection ([254e0f1](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/254e0f18851a7c015cb9818c1e18301b65e6ca62))
+
 ## [0.5.2](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.5.1...v0.5.2) (2026-02-22)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * rename finding ([e09d60f](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/e09d60f8112b7ad2568af288deaeacfe5cba5a6d))
-
-## [0.4.13](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.12...v0.4.13) (2026-02-22)
-
-
-### Bug Fixes
-
-* rework protected users group ([0e850bd](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/0e850bdf0a30bf22f3f11ad60c87c8dc4f955b96))
 
