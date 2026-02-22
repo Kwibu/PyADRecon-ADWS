@@ -1,3 +1,10 @@
+## [0.4.13](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.12...v0.4.13) (2026-02-22)
+
+
+### Bug Fixes
+
+* rework protected users group ([0e850bd](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/0e850bdf0a30bf22f3f11ad60c87c8dc4f955b96))
+
 ## [0.4.12](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.11...v0.4.12) (2026-02-21)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * refactor ESC9 detection ([25edd71](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/25edd71178dc0525520225678283deee06e2817a))
-
-## [0.4.8](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.7...v0.4.8) (2026-02-21)
-
-
-### Bug Fixes
-
-* refactor ESC2, ESC3, ESC4 detection; add manager approval to dashboard ([9f2a78b](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/9f2a78b513d0b4c5edb97037fbff9e5e2cd0905f))
 
