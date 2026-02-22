@@ -1,3 +1,10 @@
+## [0.5.2](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.5.1...v0.5.2) (2026-02-22)
+
+
+### Bug Fixes
+
+* rework Foreign Security Principals in Privileged Groups ([171019f](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/171019f50966e60662114ddc3201c07a54ead1c8))
+
 ## [0.5.1](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.5.0...v0.5.1) (2026-02-22)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * rework protected users group ([0e850bd](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/0e850bdf0a30bf22f3f11ad60c87c8dc4f955b96))
-
-## [0.4.12](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.11...v0.4.12) (2026-02-21)
-
-
-### Bug Fixes
-
-* add support for --generate-dashboard-from ([7e6eb2b](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/7e6eb2b35dca62a0832a537f394d8dad42ed374f))
 
