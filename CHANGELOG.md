@@ -1,3 +1,10 @@
+## [0.5.0](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.14...v0.5.0) (2026-02-22)
+
+
+### Features
+
+* paginated dashboard, fixed logging ([fbcd8d8](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/fbcd8d80d09c5efb727ab53d36dde465ea73b107))
+
 ## [0.4.14](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.13...v0.4.14) (2026-02-22)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * update footer ([26fae34](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/26fae34a4a0fd921b752210a5879945a9f571569))
-
-## [0.4.10](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.9...v0.4.10) (2026-02-21)
-
-
-### Bug Fixes
-
-* make dashboard more mobile friendly ([0233fc9](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/0233fc98f96b0534ba75aae86e970e1c646e9321))
 
