@@ -1,3 +1,10 @@
+## [0.4.14](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.13...v0.4.14) (2026-02-22)
+
+
+### Bug Fixes
+
+* rename finding ([e09d60f](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/e09d60f8112b7ad2568af288deaeacfe5cba5a6d))
+
 ## [0.4.13](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.12...v0.4.13) (2026-02-22)
 
 
@@ -25,11 +32,4 @@
 ### Bug Fixes
 
 * make dashboard more mobile friendly ([0233fc9](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/0233fc98f96b0534ba75aae86e970e1c646e9321))
-
-## [0.4.9](https://github.com/l4rm4nd/PyADRecon-ADWS/compare/v0.4.8...v0.4.9) (2026-02-21)
-
-
-### Bug Fixes
-
-* refactor ESC9 detection ([25edd71](https://github.com/l4rm4nd/PyADRecon-ADWS/commit/25edd71178dc0525520225678283deee06e2817a))
 
