@@ -7131,6 +7131,14 @@ Examples:
 
     args = parser.parse_args()
 
+    # Configure logging level early so it's available for all modes
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG, format='[%(levelname)s] %(message)s', force=True)
+        logger.setLevel(logging.DEBUG)
+    else:
+        logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s', force=True)
+        logger.setLevel(logging.INFO)
+
     # Standalone Excel generation mode
     if args.generate_excel_from:
         print(BANNER)
@@ -7148,11 +7156,12 @@ Examples:
     # Standalone Dashboard generation mode
     if args.generate_dashboard_from:
         print(BANNER)
+        logger.info("Running in standalone dashboard generation mode")
+        
         if not DASHBOARD_AVAILABLE:
             logger.error("[!] Dashboard generator not available (dashboard_generator.py not found)")
             sys.exit(1)
         
-        logger.info(f"[*] Generating HTML dashboard from: {args.generate_dashboard_from}")
         result = generate_dashboard_from_csv(args.generate_dashboard_from, args.output)
         if result:
             logger.info(f"[+] Dashboard generated: {result}")
@@ -7162,14 +7171,6 @@ Examples:
 
     # Print banner for normal mode
     print(BANNER)
-
-    # Configure logging level
-    if args.verbose:
-        logging.basicConfig(level=logging.DEBUG, format='[%(levelname)s] %(message)s', force=True)
-        logger.setLevel(logging.DEBUG)
-    else:
-        logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s', force=True)
-        logger.setLevel(logging.INFO)
 
     # Validate required arguments for normal mode
     if not args.domain or not args.username or not args.domain_controller:
